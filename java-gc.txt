@@ -1,0 +1,86 @@
+reference
+ 
+1. http://www.cubrid.org/blog/dev-platform/understanding-java-garbage-collection/
+2. http://www.infoq.com/articles/Java_Garbage_Collection_Distilled
+3. http://www.oracle.com/technetwork/java/javase/gc-tuning-6-140523.html
+ 
+4 Understanding CMS GC Logs
+https://blogs.oracle.com/poonam/entry/understanding_cms_gc_logs
+ 
+5 Troubleshooting Long GC Pauses
+https://blogs.oracle.com/poonam/entry/troubleshooting_long_gc_pauses
+ 
+5 Useful JVM Flags – Part 8 (GC Logging)
+https://blog.codecentric.de/en/2014/01/useful-jvm-flags-part-8-gc-logging/
+ 
+ 
+ 
+ 
+ 
+jstat -gcutil vmid timeinterval
+ 
+ 
+resin java config:
+ 
+ 
+-Xmx2048M 
+-Xms2048M 
+ 
+ 
+-XX:NewSize=800M     young generation size
+ 
+-XX:MaxNewSize=800M 	max young generation size
+ 
+-XX:SurvivorRatio=8 	Eden:suirivoir
+ 
+-Xss512k   设置每个线程的堆栈大小
+ 
+ 
+-XX:PermSize=128M 
+ 
+-XX:MaxPermSize=128M 
+ 
+ 
+-XX:+UseConcMarkSweepGC 
+ 
+-XX:+UseCMSCompactAtFullCollection  使用并发收集器时，开启对年老代的压缩 但是可以消除碎片。 
+ 
+-XX:+CMSParallelRemarkEnabled 
+ 
+ 
+ 
+-XX:+UseCMSInitiatingOccupancyOnly 	  
+ 
+This parameter tells the JVM to use only the value defined by -XX:CMSInitiatingOccupancyFraction 
+, rather than try to also calculate the value at runtime. 
+ 
+-XX:CMSInitiatingOccupancyFraction=70  This parameter sets the threshold percentage occupancy
+of the old generation at which the CMS GC is triggered. The default for JVM 1.4.2 is 68, 
+but the JVM deviates from this default at runtime. So, setting this parameter explicitly 
+tells the JVM when to trigger CMS GC in the tenured generation. 
+ 
+XX:CMSInitiatingOccupancyFraction=<value> where value denotes the utilization of old generation 
+heap space in percent. For example, value=75 means that the first CMS cycle starts when 75% of 
+the old generation is occupied. Traditionally, the default value of CMSInitiatingOccupancyFraction 
+is 68 (which was determined empirically quite some time ago).
+ 
+ 
+ 
+ 
+-XX:+PrintGCDateStamps 
+-XX:+PrintHeapAtGC 
+-XX:+PrintGCDetails 
+ 
+ 
+-XX:+DisableExplicitGC          	禁止显式GC调用
+-Xnoclassgc 
+ 
+ 
+CMS Collector handles objects in the old generation
+ 
+ 
+ 
+ 
+-XX:NewRatio=4:设置年轻代（包括Eden和两个Survivor区）与年老代的比值（除去持久代）
+ 
+-XX:+UseParNewGC:设置年轻代为并行收集
