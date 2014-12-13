@@ -1,0 +1,325 @@
+1
+ 
+线上程序，某日报警一晚上。报打开文件数目过多。
+ 
+在测试机上跑。
+用系统监控命令可以看到一些端倪。
+ 
+用pstree命令可以看该jvm进程跑一段时间之后竟然开启了上万个线程。
+ 
+pstree -p 可以显示进程相应的进程号以及调用关系。
+ 
+确定进程号之后，通过jstack工具，可以查看相应的jvm中的线程情况。
+ 
+通过jstack工具可以看到创建的上万个线程都是netty相关的代码，
+ 
+ 
+        at io.netty.channel.nio.NioEventLoop.select(NioEventLoop.java:605)
+        at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:306)
+        at io.netty.util.concurrent.SingleThreadEventExecutor$2.run(SingleThreadEventExecutor.java:101)
+ 
+ 
+貌似是每建立一个新的链接，都会启动一个新的线程池来处理该链接模型。
+ 
+netty本来是nio模型的，但是貌似却变成传统的thread 模型了。
+ 
+ 
+2.
+ 
+至此对于java在linux中是如何实现线程的想要了解一下。
+ 
+在linux上，可以通过 ps -eLf 来查看线程信息。
+ 
+ 
+On Linux, Java threads are implemented with native threads, so a Java program using 
+threads is no different from a native program using threads. A "Java thread" is just
+a thread belonging to a JVM process.
+ 
+On a modern Linux system (one using NPTL), all threads belonging to a process have 
+the same process ID and parent process ID, but different thread IDs. You can see 
+these IDs by running ps -eLf. The PID column is the process ID, the PPID column is 
+the parent process ID, and the LWP column is the thread (LightWeight Process) ID. 
+The "main" thread has a thread ID that's the same as the process ID, and additional 
+threads will have different thread ID values.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+几点疑惑之处，这样看来每个进程里面的标识符有很多了。
+ 
+ 
+A session contains a number of process groups, 
+ 
+and a process group contains a number of processes,
+ 
+and a process contains a number of threads.
+ 
+ 
+pid : process id 
+ 
+sid : session id
+ 
+pgid : process group id 
+ 
+tgid : thread group id
+ 
+ppid: parent process id 
+ 
+ 
+ 
+linux kernel development 书中对于线程和进程的区别和创建流程有一个比较好的说明，大致如下：
+ 
+ 
+ 
+在linux系统中，不管是线程还是进程创建，最后都是走到clone这个系统调用。
+ 
+只是进程和线程传递给clone的参数不一致，系统会根据不同的参数来做相应的
+ 
+调整。
+ 
+线程是如下系统调用关系：
+ 
+clone(CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND, 0);
+ 
+表示和父进程共享内存空间，文件系统，文件描述符，以及信号量处理机制。
+ 
+而进程相当于如下调用：
+ 
+clone(SIGCHLD, 0);
+ 
+ 
+ 
+ 
+ 
+                                
+ 
+ 
+reference:
+ 
+1.http://stackoverflow.com/questions/1888160/distinguish-java-threads-and-os-threads
+ 
+2.http://stackoverflow.com/questions/9305992/linux-threads-and-process
+ 
+3.linux kernel development
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+2. 某日调用某接口出现接口超时情况
+ 
+ 
+通过tcpdump查看数据包情况
+ 
+ 
+14:12:09.888741 IP YHG-L12-01-kh-oem01.35508 > 10.10.1.99.61002: Flags [P.], seq 3077512376:3077512865, ack 3291672824, win 7328, options [nop,nop,TS val 2504497029 ecr 3723377733], length 489
+	0x0000:  e41f 1344 27da e41f 13b4 beec 0800 4500  ...D'.........E.
+	0x0010:  021d d89f 4000 4006 497f 0a0a 0146 0a0a  ....@.@.I....F..
+	0x0020:  0163 8ab4 ee4a b76f 1cb8 c432 f0f8 8018  .c...J.o...2....
+	0x0030:  1ca0 18cc 0000 0101 080a 9547 9785 ddee  ...........G....
+	0x0040:  3c45 0000 e803 0000 0000 0000 0000 0000  <E..............
+	0x0050:  0000 0000 0000 0000 0000 9493 70fb 0200  ............p...
+	0x0060:  0000 c501 0000 1000 bf01 0000 0200 0000  ................
+	0x0070:  1007 5500 0000 6865 6164 6572 0004 0000  ..U...header....
+	0x0080:  00d0 0d0a 636f 6e74 656e 745f 7479 7065  ....content_type
+	0x0090:  004d 6370 6163 6b52 7063 0031 0b63 6f6e  .McpackRpc.1.con
+	0x00a0:  6e65 6374 696f 6e00 01d0 0806 6368 6172  nection.....char
+	0x00b0:  6573 7400 7574 662d 3800 d00f 0661 6363  est.utf-8....acc
+	0x00c0:  6570 745f 6368 6172 7365 7400 5554 462d  ept_charset.UTF-
+	0x00d0:  3800 2008 4b01 0000 636f 6e74 656e 7400  8...K...content.
+	0x00e0:  0100 0000 1000 4101 0000 0400 0000 d00d  ......A.........
+	0x00f0:  1e73 6572 7669 6365 5f6e 616d 6500 636f  .service_name.co
+	0x0100:  6d2e 6261 6964 752e 7270 632e 7573 6572  m.baidu.rpc.user
+	0x0110:  6170 692e 5573 6572 4170 6900 1803 6964  api.UserApi...id
+	0x0120:  0020 d400 0000 0000 00d0 071d 6d65 7468  ............meth
+	0x0130:  6f64 0067 6574 5f62 6169 6475 5f75 7365  od.get_baidu_use
+	0x0140:  725f 696e 666f 5f62 795f 6264 7573 7300  r_info_by_bduss.
+	0x0150:  1007 ce00 0000 7061 7261 6d73 0001 0000  ......params....
+	0x0160:  00d0 06c1 6264 7573 7300 5268 5332 747a  ....bduss.RhS2tz
+	0x0170:  576a 6c6f 6346 6876 5555 6469 666b 6c52  WjlocFhvUUdifklR
+	0x0180:  4d6b 4644 5444 4a48 6246 5a6b 4d31 6854  MkFDTDJHbFZkM1hT
+	0x0190:  5430 777a 637a 4a58 5755 5656 5631 6442  T0wzczJXWUVVV1dB
+	0x01a0:  5658 5655 5255 3556 5156 4642 5155 4642  VXVURU5VQVFBQUFB
+	0x01b0:  4a43 5141 4141 4141 4141 4141 4141 4541  JCQAAAAAAAAAAAEA
+	0x01c0:  4141 446f 532d 644f 6358 4673 6157 3533  AADoS-dOcXFsaW53
+	0x01d0:  5957 3578 6151 4141 4141 4141 4141 4141  YW5xaQAAAAAAAAAA
+	0x01e0:  4141 4141 4141 4141 4141 4141 4141 4141  AAAAAAAAAAAAAAAA
+	0x01f0:  4141 4141 4141 4141 4141 4141 4141 4141  AAAAAAAAAAAAAAAA
+	0x0200:  4141 4141 4141 4141 4141 4141 4141 4141  AAAAAAAAAAAAAAAA
+	0x0210:  4141 4141 4141 4141 4141 4141 4143 367e  AAAAAAAAAAAAAC6~
+	0x0220:  4731 5175 7678 7455 6430 00              G1QuvxtUd0.
+14:12:09.904885 IP 10.10.1.99.61002 > YHG-L12-01-kh-oem01.35508: Flags [P.], seq 3291672824:3291673344, ack 3077512865, win 500, options [nop,nop,TS val 3723400809 ecr 2504497029], length 520
+	0x0000:  e41f 13b4 beec e41f 1344 27da 0800 4500  .........D'...E.
+	0x0010:  023c eec2 4000 4006 333d 0a0a 0163 0a0a  .<..@.@.3=...c..
+	0x0020:  0146 ee4a 8ab4 c432 f0f8 b76f 1ea1 8018  .F.J...2...o....
+	0x0030:  01f4 9b48 0000 0101 080a ddee 9669 9547  ...H.........i.G
+	0x0040:  9785 0000 0000 0000 0000 0000 0000 0000  ................
+	0x0050:  0000 0000 0000 0000 0000 9493 70fb 0000  ............p...
+	0x0060:  0000 e401 0000 1000 de01 0000 0200 0000  ................
+	0x0070:  2008 bb01 0000 636f 6e74 656e 7400 0100  ......content...
+	0x0080:  0000 1000 b101 0000 0200 0000 1803 6964  ..............id
+	0x0090:  0020 d400 0000 0000 0010 0e8c 0100 0072  ...............r
+	0x00a0:  6573 756c 745f 7061 7261 6d73 0002 0000  esult_params....
+	0x00b0:  0014 0472 6573 0000 0000 0010 0573 0100  ...res.......s..
+	0x00c0:  0069 6e66 6f00 1000 0000 d004 0b75 6964  .info........uid
+	0x00d0:  0031 3332 3337 3831 3039 3600 d00d 0b63  .1323781096....c
+	0x00e0:  7265 6174 6564 5f74 696d 6500 3134 3131  reated_time.1411
+	0x00f0:  3130 3435 3538 00d0 100b 6c61 7374 5f6c  104558....last_l
+	0x0100:  6f67 696e 5f74 696d 6500 3134 3131 3130  ogin_time.141110
+	0x0110:  3435 3538 00d0 0d02 6163 6365 7373 5f63  4558....access_c
+	0x0120:  6f75 6e74 0030 00d0 1202 6e65 6564 5f72  ount.0....need_r
+	0x0130:  6573 6574 5f63 6f6f 6b69 6500 3000 d012  eset_cookie.0...
+	0x0140:  0b6c 6173 745f 7570 6461 7465 645f 7469  .last_updated_ti
+	0x0150:  6d65 0031 3431 3131 3034 3535 3800 d013  me.1411104558...
+	0x0160:  0b67 6c6f 6261 6c5f 6163 6365 7373 5f74  .global_access_t
+	0x0170:  696d 6500 3134 3131 3130 3435 3538 00d0  ime.1411104558..
+	0x0180:  140b 7072 6976 6174 655f 6163 6365 7373  ..private_access
+	0x0190:  5f74 696d 6500 3134 3131 3130 3435 3538  _time.1411104558
+	0x01a0:  00d0 0902 7077 645f 666c 6167 0031 00d0  ....pwd_flag.1..
+	0x01b0:  0902 7265 7365 7276 6564 0030 00d0 0c01  ..reserved.0....
+	0x01c0:  7365 6375 7265 656d 6169 6c00 00d0 0c0c  secureemail.....
+	0x01d0:  7365 6375 7265 6d6f 6269 6c00 3133 3239  securemobil.1329
+	0x01e0:  3638 3832 3730 3500 d009 0b75 7365 726e  6882705....usern
+	0x01f0:  616d 6500 7171 6c69 6e77 616e 7169 00d0  ame.qqlinwanqi..
+	0x0200:  0c0b 6469 7370 6c61 796e 616d 6500 7171  ..displayname.qq
+	0x0210:  6c69 6e77 616e 7169 00d0 0c02 676c 6f62  linwanqi....glob
+	0x0220:  616c 5f64 6174 6100 1200 d00a 0275 7365  al_data......use
+	0x0230:  725f 7479 7065 0030 0010 0704 0000 0068  r_type.0.......h
+	0x0240:  6561 6465 7200 0000 0000                 eader.....
+14:12:09.904895 IP YHG-L12-01-kh-oem01.35508 > 10.10.1.99.61002: Flags [.], ack 3291673344, win 7328, options [nop,nop,TS val 2504497046 ecr 3723400809], length 0
+	0x0000:  e41f 1344 27da e41f 13b4 beec 0800 4500  ...D'.........E.
+	0x0010:  0034 d8a0 4000 4006 4b67 0a0a 0146 0a0a  .4..@.@.Kg...F..
+	0x0020:  0163 8ab4 ee4a b76f 1ea1 c432 f300 8010  .c...J.o...2....
+	0x0030:  1ca0 9be6 0000 0101 080a 9547 9796 ddee  ...........G....
+	0x0040:  9669                                     .i
+14:12:09.905411 IP YHG-L12-01-kh-oem01.22858 > 10.10.1.100.61002: Flags [P.], seq 3070855609:3070856246, ack 987898561, win 6734, options [nop,nop,TS val 2504497046 ecr 121217867], length 637
+	0x0000:  e41f 1344 55c0 e41f 13b4 beec 0800 4500  ...DU.........E.
+	0x0010:  02b1 c931 4000 4006 5858 0a0a 0146 0a0a  ...1@.@.XX...F..
+	0x0020:  0164 594a ee4a b709 89b9 3ae2 22c1 8018  .dYJ.J....:."...
+	0x0030:  1a4e 1961 0000 0101 080a 9547 9796 0739  .N.a.......G...9
+	0x0040:  a34b 0000 e803 0000 0000 0000 0000 0000  .K..............
+	0x0050:  0000 0000 0000 0000 0000 9493 70fb 0200  ............p...
+	0x0060:  0000 5902 0000 1000 5302 0000 0200 0000  ..Y.....S.......
+	0x0070:  1007 5500 0000 6865 6164 6572 0004 0000  ..U...header....
+	0x0080:  00d0 0d0a 636f 6e74 656e 745f 7479 7065  ....content_type
+	0x0090:  004d 6370 6163 6b52 7063 0031 0b63 6f6e  .McpackRpc.1.con
+	0x00a0:  6e65 6374 696f 6e00 01d0 0806 6368 6172  nection.....char
+	0x00b0:  6573 7400 7574 662d 3800 d00f 0661 6363  est.utf-8....acc
+	0x00c0:  6570 745f 6368 6172 7365 7400 5554 462d  ept_charset.UTF-
+	0x00d0:  3800 2008 df01 0000 636f 6e74 656e 7400  8.......content.
+	0x00e0:  0100 0000 1000 d501 0000 0400 0000 d00d  ................
+	0x00f0:  1e73 6572 7669 6365 5f6e 616d 6500 636f  .service_name.co
+	0x0100:  6d2e 6261 6964 752e 7270 632e 7573 6572  m.baidu.rpc.user
+	0x0110:  6170 692e 5573 6572 4170 6900 1803 6964  api.UserApi...id
+	0x0120:  0021 d400 0000 0000 00d0 071b 6d65 7468  .!..........meth
+	0x0130:  6f64 0062 6169 6475 5f69 6d70 6c69 6369  od.baidu_implici
+	0x0140:  745f 6269 6e64 5f64 756f 6b6f 6f00 1007  t_bind_duokoo...
+	0x0150:  6401 0000 7061 7261 6d73 0008 0000 00d0  d...params......
+	0x0160:  06c1 6264 7573 7300 5268 5332 747a 576a  ..bduss.RhS2tzWj
+	0x0170:  6c6f 6346 6876 5555 6469 666b 6c52 4d6b  locFhvUUdifklRMk
+	0x0180:  4644 5444 4a48 6246 5a6b 4d31 6854 5430  FDTDJHbFZkM1hTT0
+	0x0190:  777a 637a 4a58 5755 5656 5631 6442 5658  wzczJXWUVVV1dBVX
+	0x01a0:  5655 5255 3556 5156 4642 5155 4642 4a43  VURU5VQVFBQUFBJC
+	0x01b0:  5141 4141 4141 4141 4141 4141 4541 4141  QAAAAAAAAAAAEAAA
+	0x01c0:  446f 532d 644f 6358 4673 6157 3533 5957  DoS-dOcXFsaW53YW
+	0x01d0:  3578 6151 4141 4141 4141 4141 4141 4141  5xaQAAAAAAAAAAAA
+	0x01e0:  4141 4141 4141 4141 4141 4141 4141 4141  AAAAAAAAAAAAAAAA
+	0x01f0:  4141 4141 4141 4141 4141 4141 4141 4141  AAAAAAAAAAAAAAAA
+	0x0200:  4141 4141 4141 4141 4141 4141 4141 4141  AAAAAAAAAAAAAAAA
+	0x0210:  4141 4141 4141 4141 4141 4143 367e 4731  AAAAAAAAAAAC6~G1
+	0x0220:  5175 7678 7455 6430 0018 0b69 6e5f 6368  QuvxtUd0...in_ch
+	0x0230:  616e 6e65 6c00 0000 0000 0000 0000 180b  annel...........
+	0x0240:  6578 5f63 6861 6e6e 656c 00be 3500 0000  ex_channel..5...
+	0x0250:  0000 00d0 0504 6672 6f6d 0063 726d 00d0  ......from.crm..
+	0x0260:  0806 7665 7273 696f 6e00 322e 302e 3000  ..version.2.0.0.
+	0x0270:  d005 1069 6d65 6900 3836 3237 3138 3031  ...imei.86271801
+	0x0280:  3233 3932 3331 3600 d00a 0165 7874 656e  2392316....exten
+	0x0290:  7369 6f6e 0000 d005 2175 6469 6400 3634  sion....!udid.64
+	0x02a0:  3134 4533 4336 3346 4441 3837 3933 3642  14E3C63FDA87936B
+	0x02b0:  4334 3634 4230 3742 4335 3838 4145 00    C464B07BC588AE.
+14:12:09.905530 IP 10.10.1.100.61002 > YHG-L12-01-kh-oem01.22858: Flags [.], ack 3070856246, win 42, options [nop,nop,TS val 121223700 ecr 2504497046], length 0
+	0x0000:  e41f 13b4 beec e41f 1344 55c0 0800 4500  .........DU...E.
+	0x0010:  0034 c3fa 4000 4006 600c 0a0a 0164 0a0a  .4..@.@.`....d..
+	0x0020:  0146 ee4a 594a 3ae2 22c1 b709 8c36 8010  .F.JYJ:."....6..
+	0x0030:  002a 8931 0000 0101 080a 0739 ba14 9547  .*.1.......9...G
+	0x0040:  9796                                     ..
+14:12:10.444372 IP YHG-L12-01-kh-oem01.22875 > 10.10.1.100.61002: Flags [P.], seq 3074708992:3074709481, ack 433561542, win 7332, options [nop,nop,TS val 2504497585 ecr 121205667], length 489
+	0x0000:  e41f 1344 55c0 e41f 13b4 beec 0800 4500  ...DU.........E.
+	0x0010:  021d 410b 4000 4006 e112 0a0a 0146 0a0a  ..A.@.@......F..
+	0x0020:  0164 595b ee4a b744 5600 19d7 9fc6 8018  .dY[.J.DV.......
+	0x0030:  1ca4 18cd 0000 0101 080a 9547 99b1 0739  ...........G...9
+	0x0040:  73a3 0000 e803 0000 0000 0000 0000 0000  s...............
+	0x0050:  0000 0000 0000 0000 0000 9493 70fb 0200  ............p...
+	0x0060:  0000 c501 0000 1000 bf01 0000 0200 0000  ................
+	0x0070:  1007 5500 0000 6865 6164 6572 0004 0000  ..U...header....
+	0x0080:  00d0 0d0a 636f 6e74 656e 745f 7479 7065  ....content_type
+	0x0090:  004d 6370 6163 6b52 7063 0031 0b63 6f6e  .McpackRpc.1.con
+	0x00a0:  6e65 6374 696f 6e00 01d0 0806 6368 6172  nection.....char
+	0x00b0:  6573 7400 7574 662d 3800 d00f 0661 6363  est.utf-8....acc
+	0x00c0:  6570 745f 6368 6172 7365 7400 5554 462d  ept_charset.UTF-
+	0x00d0:  3800 2008 4b01 0000 636f 6e74 656e 7400  8...K...content.
+	0x00e0:  0100 0000 1000 4101 0000 0400 0000 d00d  ......A.........
+	0x00f0:  1e73 6572 7669 6365 5f6e 616d 6500 636f  .service_name.co
+	0x0100:  6d2e 6261 6964 752e 7270 632e 7573 6572  m.baidu.rpc.user
+	0x0110:  6170 692e 5573 6572 4170 6900 1803 6964  api.UserApi...id
+	0x0120:  0022 d400 0000 0000 00d0 071d 6d65 7468  ."..........meth
+	0x0130:  6f64 0067 6574 5f62 6169 6475 5f75 7365  od.get_baidu_use
+	0x0140:  725f 696e 666f 5f62 795f 6264 7573 7300  r_info_by_bduss.
+	0x0150:  1007 ce00 0000 7061 7261 6d73 0001 0000  ......params....
+	0x0160:  00d0 06c1 6264 7573 7300 5556 6e4d 5645  ....bduss.UVnMVE
+	0x0170:  7851 6b4e 695a 576c 6c63 584e 5054 6d78  xQkNiZWllcXNPTmx
+	0x0180:  6d55 6d74 5852 4663 3556 4667 7852 4670  mUmtXRFc5VFgxRFp
+	0x0190:  474d 6931 474e 446b 3457 4546 6a4d 565a  GMi1GNDk4WEFjMVZ
+	0x01a0:  7852 444a 5152 5535 5651 5646 4251 5546  xRDJQRU5VQVFBQUF
+	0x01b0:  424a 4351 4141 4141 4141 4141 4141 4145  BJCQAAAAAAAAAAAE
+	0x01c0:  4141 4142 6158 4b5a 4457 557a 4231 7450  AAABaXKZDWUzB1tP
+	0x01d0:  7541 4141 4141 4141 4141 4141 4141 4141  uAAAAAAAAAAAAAAA
+	0x01e0:  4141 4141 4141 4141 4141 4141 4141 4141  AAAAAAAAAAAAAAAA
+	0x01f0:  4141 4141 4141 4141 4141 4141 4141 4141  AAAAAAAAAAAAAAAA
+	0x0200:  4141 4141 4141 4141 4141 4141 4141 4141  AAAAAAAAAAAAAAAA
+	0x0210:  4141 4141 4141 4141 4141 4141 4141 5061  AAAAAAAAAAAAAAPa
+	0x0220:  7647 3154 3272 7874 5562 00              vG1T2rxtUb.
+14:12:10.444485 IP 10.10.1.100.61002 > YHG-L12-01-kh-oem01.22875: Flags [.], ack 3074709481, win 499, options [nop,nop,TS val 121224239 ecr 2504497585], length 0
+	0x0000:  e41f 13b4 beec e41f 1344 55c0 0800 4500  .........DU...E.
+	0x0010:  0034 74ff 4000 4006 af07 0a0a 0164 0a0a  .4t.@.@......d..
+	0x0020:  0146 ee4a 595b 19d7 9fc6 b744 57e9 8010  .F.JY[.....DW...
+	0x0030:  01f3 5b39 0000 0101 080a 0739 bc2f 9547  ..[9.......9./.G
+	0x0040:  99b1                                     ..
+ 
+ 
+ 
+这是交互报文，其那面一次交互成功，后面交互出现问题
+ 
+ 
+ 
+ 
+tcpdump
+ 
+ 
+-n domain name are not resolved
+ 
+-X display hex and ascii content
+ 
+-S display the absolute sequence number
+ 
+-s number  number of bytes you want to capture
+ 
+-s0  for a snaplength, which gets everything
+ 
+ 
+ 
+http://danielmiessler.com/study/tcpdump/
+ 
+http://danielmiessler.com/study/tcpflags/
+ 
+ 
+ 
+tcpdump port 61012 -s0 -S -XX
