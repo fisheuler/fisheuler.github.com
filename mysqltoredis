@@ -1,0 +1,123 @@
+游戏的白名单数据查询中，需要从后端数据库中load数据至redis缓存。
+ 
+白名单数据在redis中的数据格式是  key:value对。
+ 
+key的拼接规则是： 公共前缀（MOBILE_ASSISTANT_PACKAGE_LIST_INFO_）+包名
+ 
+value的规则是：json串，包括三个字段gameid，packageName，gameName，如果字段为空值的话，则不保存此字段。
+ 
+ 
+以"蝙蝠侠冒险"这款游戏为例，其包名为com.djlr.bobo.bianfuxiamaox，游戏名称为” 蝙蝠侠冒险“，游戏id为空值。
+ 
+则对应的key为：MOBILE_ASSISTANT_PACKAGE_LIST_INFO_com.djlr.bobo.bianfuxiamaox
+ 
+相应的value值为："{"packageName":"com.djlr.bobo.bianfuxiamaox","gameName":" 蝙蝠侠冒险"}"
+ 
+需要从mysql数据库中批量导入数据至redis缓存中。
+ 
+ 
+ 
+先创建从mysql数据库中导入和拼接数据的sql脚本，然后通过redis的批量导入功能来完成此功能。
+ 
+ 
+我这边脚本名字为mobileassistant_mysql_to_reds.sql , 内容为:
+ 
+ 
+select concat(
+"*3\r\n",
+'$',LENGTH(redis_cmd),'\r\n',
+redis_cmd,'\r\n',
+'$',LENGTH(redis_key),'\r\n',
+redis_key,'\r\n',
+'$',LENGTH(redis_value),'\r\n',
+redis_value,'\r'
+)
+FROM(
+select 
+'SET' as redis_cmd,
+CONCAT('MOBILE_ASSISTANT_PACKAGE_LIST_INFO_',package_name) as redis_key,
+CONCAT('{\"packageName\":\"',package_name,'\"',',\"gameName\":',game_name,'\"}') as redis_value
+from mcp_game_package_rel
+) AS t
+ 
+ 
+之后通过linux中的管道来实现批量导入数据至redis数据库：
+命令行参数
+ 
+mysql -h 10.10.1.106 --port=3307 -uwork -pduoku2012 -DMCP --skip-column-names --raw < mobileassistant_mysql_to_reds.sql | redis-cli -h 127.0.0.1 -p 6379 --pipe	 
+ 
+ 
+上面语句完成从10.10.1.106：:307的MCP库中导入数据至本地redis实例中。
+ 
+ 
+通过time可以查看到导入30w条数据大概耗费了2.5秒的时间
+ 
+ 
+time mysql -h 10.10.1.106 --port=3307 -uwork -pduoku2012 -DMCP --skip-column-names --raw < mobileassistant_mysql_to_reds.sql | redis-cli -h 127.0.0.1 -p 6379 --pipe	
+ 
+ 
+All data transferred. Waiting for the last reply...
+Last reply received from server.
+errors: 0, replies: 309701
+real 0m2.422s
+user 0m0.721s
+sys 0m0.180s
+ 
+ 
+导入完成之后通过redis-cli查看相应的数据格式没有问题。
+ 
+ 
+get	MOBILE_ASSISTANT_PACKAGE_LIST_INFO_com.djlr.bobo.bianfuxiamaox	"{\"packageName\":\"com.djlr.bobo.bianfuxiamaox\",\"gameName\":\"\xe8\x9d\x99\xe8\x9d\xa0\xe4\xbe\xa0\xe5\x86\x92\xe9\x99\xa9\"}"
+ 
+ 
+ 
+ 
+2 批量删除脚本。需要根据线上黑名单批量删除某些包
+ 
+ 
+数据库load脚本名称
+ 
+mobileassistant_mysql_to_reds_blacklist.sql	
+select concat(
+"*2\r\n",
+'$',LENGTH(redis_cmd),'\r\n',
+redis_cmd,'\r\n',
+'$',LENGTH(redis_key),'\r\n',
+redis_key,'\r'
+)
+FROM(
+select 
+'DEL' as redis_cmd,
+CONCAT('MOBILE_ASSISTANT_PACKAGE_LIST_INFO_',package_name) as redis_key
+from mcp_game_blacklist
+) AS t
+ 
+之后通过linux中的管道来实现批量导入数据至redis数据库：
+命令行参数
+ 
+mysql -h 10.10.1.120 --port=4051 -uroot -pduoku2012 -DMCP --skip-column-names --raw < mobileassistant_mysql_to_reds_blacklist.sql  | redis-cli -h 10.10.1.101 -p 6386 --pipe	 
+此脚本通过链接线上的黑名单数据批量删除redis中的数据。
+ 
+3. 批量删除脚本。线下百度数据库也需要过滤一下
+数据库load脚本名称
+内容
+mobileassistant_mysql_to_reds_baidu_blacklist.sql	
+select concat(
+"*2\r\n",
+'$',LENGTH(redis_cmd),'\r\n',
+redis_cmd,'\r\n',
+'$',LENGTH(redis_key),'\r\n',
+redis_key,'\r'
+)
+FROM(
+select 
+'DEL' as redis_cmd,
+CONCAT('MOBILE_ASSISTANT_PACKAGE_LIST_INFO_',apkName) as redis_key
+from BaiduAndroidInfo where enable=0
+) AS t
+ 
+之后通过linux中的管道来实现批量导入数据至redis数据库：
+命令行参数
+ 
+ mysql -h 10.10.0.141 --port=3306 -uwork -pduoku2012 -Dstatusxkdb --skip-column-names --raw < mobileassistant_mysql_to_reds_baidu_blacklist.sql  | redis-cli -h 10.10.1.101 -p 6386 --pipe	 
+此脚本通过链接线上的黑名单数据批量删除redis中的数据。
