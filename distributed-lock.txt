@@ -1,0 +1,45 @@
+1.
+ 
+分布式锁服务，是在系统的某个endpoint提供一个供程序沟通和协同的方法。
+ 
+ 
+具体实现方法，可以在redis中来实现，也可以用zookeeper来做。
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+reference
+ 
+1.
+http://redis.io/topics/distlock
+ 
+2.
+A proposal for more reliable locks using Redis
+http://antirez.com/news/77
+ 
+3.
+http://redis.io/commands/set
+http://redis.io/commands/setnx
+ 
+4.
+http://stackoverflow.com/questions/133988/problem-with-synchronizing-on-string-objects
+http://stackoverflow.com/questions/17851422/ruby-redis-based-mutex-with-expiration-implementation
+ 
+5. zookeeper lock implementation
+ 
+Distributed Lock using Zookeeper
+ 
+https://www.altamiracorp.com/blog/employee-posts/distributed-lock-using-zookeeper
+https://www.altamiracorp.com/blog/employee-posts/distributed-coordination-with-zookeeper-part-5-building-a-distributed-lock
+ 
+ 
+ZooKeeper Resilience at Pinterest
+http://engineering.pinterest.com/post/77933733851/zookeeper-resilience-at-pinterest
+ 
+ 
+SmartStack: Service Discovery in the Cloud
+http://nerds.airbnb.com/smartstack-service-discovery-cloud/
