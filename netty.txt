@@ -1,0 +1,94 @@
+netty 3.2
+ 
+1. channelpipeline  
+  implements an advanced form of the java intercepting filter pattern.
+  
+  just a pipeline of channel handler .   two direction of the data flow ,one is upstream ,the other is downstream.
+  
+  1.1 channelsink
+    
+    receive and process the terminal downstream.
+    
+    
+    NioClientSocketPipelineSink
+  
+    在eventSunk方法里处理两类事件：ChannelStateEvent以及 MessageEvent
+  
+    在exceptionCaught方法中，会把异常抛出到upstream方向。
+  
+  
+  1.2 NioClientSocketChannelFactory
+  
+      create a client-side socketchannel
+      
+      bossExecutor,workerExecutor,channelsink
+  
+  
+  
+  
+  
+ 
+ 
+ 2 公司现在的ub-client框架
+ 
+ 
+  用java中的反射来实现代理。
+  
+  
+  
+                                                    ------> NioClientSocketChannelFactory    --------> netty channel
+                                                                                                            |
+                                                                                                            |
+                                                                                                            | 
+                                                                                             --------> netty channel               
+                                                                                                            
+  
+  UBPoolJDKProxyFactory ------> UbPoolClientFactory ------>                  UbPoolClient    --------> Mcpack( ENCODE and DECODE)
+  
+  
+  
+  
+  
+  
+  
+  UBPoolJDKProxyFactory 中利用java反射机制，通过UbPoolClientFactory来获取一个UbPoolClient对象。
+  
+  UbPoolClientFactory中通过netty中的NioClientSocketChannelFactory来获取Channel对象，然后通过
+  UbPoolClient对象来封装channel，同时在UbPoolClient中保持有对mcpack的引用，mcpack主要是用来
+  编解码的，UbPoolClient在发送reqeust时候，通过mcpack将reqeust转换为byte流，然后通过channel将
+  请求参数发送到远端服务器。
+  
+  
+  对于UbPoolClient的每次调用，会创建一个ArrayBlockingQueue对象，来实现客户端的同步。客户端这边
+  方法是同步的，通过ArrayBlockingQueue的poll方法等待服务器的response，直到超过了某个超时时间。
+  
+  
+  
+  UbPoolClientPipelineFactory 继承ChannelPipelineFactory,用来设置客户端接受和发送请求的pipeline，
+  
+  包括三个handler，UBEncodeHandler,UBDecodeHandler,MessageReceiveHandler.
+  
+  
+  当通过UbPoolClientFactory创建channel对象时候，会将pipeline与channel对应，这样当服务器返回response
+  对象时候，通过decodehandler，以及messageReceivehandler,将作为response的byte流转换为response对象，
+  然后再根据requestId将response对象放到相对应的ArrayBlockingQueue里面，这样阻塞在poll方法上的client端
+  代码就可以获取相应的response对象了。
+  
+ 
+  相应的client端会启用一个线程来监控和服务器的连接是否正常，当连接关闭或者出现异常时候，会重新建立连接。
+  
+  
+  
+  发送response请求时候，客户端会把相应请求的这些信息打包发送给服务端：class name ,method name,method args.
+  
+  对于方法参数的传递，会把参数名以及参数的值给传递过去。因为不能通过java的反射机制来获取方法的请求参数名，
+  
+  所以这边通过Annotation机制，给每个方法的参数打上Parameter标签，然后通过反射机制来获取相应的方法参数名字。
+  
+  
+  
+  reference
+  
+  1 Core J2EE Patterns - Intercepting Filter
+  http://www.oracle.com/technetwork/java/interceptingfilter-142169.html
+  
