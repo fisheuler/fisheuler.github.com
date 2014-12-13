@@ -1,0 +1,22 @@
+1. 
+ 
+Buffer 缓冲区  通常在两个IO系统交互时候，需要缓冲区来提高IO效率
+ 
+比如: TCP/IP的发送和接受缓冲区
+      
+      
+Cache 缓存  系统一般存储系统是分层的，缓存用来提高读效率，将内容
+从读速度较慢的设备，存储到读速度较快的设备的思想。
+ 
+disk --> memory --> cpu cache --> register
+ 
+ 
+ 
+ 
+reference:
+ 
+1 http://www.quora.com/What-is-the-difference-between-Buffers-and-Cached-columns-in-proc-meminfo-output
+ 
+2 http://www.quora.com/Linux-Kernel/What-is-the-major-difference-between-the-buffer-cache-and-the-page-cache
+ 
+3 http://en.wikipedia.org/wiki/Data_buffer
