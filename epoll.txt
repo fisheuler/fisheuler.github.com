@@ -1,0 +1,71 @@
+1.
+ 
+epoll是linux系统中用来实现高效的io复用的一套机制。其原理实现最重要的是了解其相关的数据结构。
+ 
+ 
+其大致思想：
+ 
+可以将需要监听的socket文件当成一个事件源(event source),当通过epoll提供的api来注册某个socketfd时候，
+相当于在此socketfd上进行了注册，表示对此socketfd上的读写事件感兴趣。
+ 
+epoll还需要一个epollfd来汇聚所有socketfd上触发的读写事件，在epollfd上有一个就绪队列(ready_queue)用
+来保存已经触发的读写事件。
+ 
+所有注册的socketfd上有一个等待队列(wait_queue)，用来保持对epollfd的引用，这样当socketfd上有时间发
+生时候，可以通过此引用队列，将此socketfd句柄加入到epollfd的ready_queue队列。
+ 
+epollfd结构还有一个保存所有的已经注册的socketfd集合字段，用红黑树来保存。
+ 
+epollfd还对应一个wait_queue，用来保存所有wait在此epollfd上的进程，当epollfd中的就绪队列ready_queue
+有事件时候，就会通过此引用队列来唤醒相应的进程集合。
+ 
+ 
+maybe we should give some Ascii art to get a  clear explaination.
+ 
+ 
+ 
+sockfd-1
+  |
+  |
+  
+sockfd-2                     e
+  |                          p  -----------> wait_queue(process)
+  |           ----------->   o
+sockfd-3                     o   
+  |           ----------->   l
+  |                          f  -----------> ready_queue(ready events)
+.....                        d 
+sockfd-N-2
+  |
+  |
+sockfd-N-1
+  |
+  |
+sockfd-N
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+参考链接
+ 
+1.http://www.quora.com/Network-Programming/How-is-epoll-implemented
+ 
+ 
+2.http://stuff.mit.edu/afs/sipb/user/yandros/doc/io-events.html
+ 
+Readiness Event Queues and other OSes
+ 
+Some other operating systems provide a mechanism called I/O completion ports and some have event queues.
+These are a mechanism to tell the OS that you want to be notified when there is activity on a FD.
+Usually, when a FD becomes active (i.e. becomes ready for reading or writing) , the OS will send
+a message (a "readiness event") to a "port" (perhaps another FD such as a pipe). 
+This message contains the FD that has become active. The one port can have many readiness events
+from many FDs sent to it. The key difference here is that you do not need to pass the OS 
+a massive FD array each time you want to listen for events: you only need to tell the OS once 
+for each FD that you want to receive readiness events for that FD. The kernel no longer needs 
+to scan a massive FD array each time through your polling loop, and nor does the application.
+This is an appealing approach, and scales very well.
