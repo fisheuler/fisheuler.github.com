@@ -1,0 +1,155 @@
+1. 某机器的tcp状态统计图
+ 
+ 
+        TIME_WAIT 5002
+        FIN_WAIT1 449
+        FIN_WAIT2 5786
+        ESTABLISHED 2609
+        CLOSING 5
+        LAST_ACK 81
+        LISTEN 1
+        
+        
+ 用如下脚本统计了一下具体的ip状态数目：
+ 
+ 
+ ss -an | grep X.X.X.96 | awk '{ print $1,$5}' | awk -F":" '{print $1}' | awk '{print $2,$1}' | sort | uniq -c | sort -n         
+ 
+ 得到的结果如下
+ 
+  数目	连接的远端机器ip  状态
+ 
+    371 x.x.x.6 TIME-WAI
+    379 x.x.x.10 TIME-WAIT
+    400 x.x.x.133 FIN-WAIT-2
+    400 x.x.x.4 TIME-WAIT
+    403 x.x.x.4 FIN-WAIT-2
+    406 x.x.x.10 FIN-WAIT-2
+    414 x.x.x.136 FIN-WAIT-2
+    414 x.x.x.8 TIME-WAIT
+    428 x.x.x.8 FIN-WAIT-2
+    434 x.x.x.6 FIN-WAIT-2
+    449 x.x.x.139 FIN-WAIT-2
+    475 x.x.x.9 TIME-WAIT
+    483 x.x.x.135 ESTAB
+    492 x.x.x.5 TIME-WAIT
+    495 x.x.x.131 ESTAB
+    512 x.x.x.3 TIME-WAIT
+    512 x.x.x.7 TIME-WAIT
+    519 x.x.x.138 ESTAB
+    710 x.x.x.3 FIN-WAIT-2
+    746 x.x.x.5 FIN-WAIT-2
+    749 x.x.x.7 FIN-WAIT-2
+    765 x.x.x.9 FIN-WAIT-2
+    893 x.x.x.138 TIME-WAIT
+    917 x.x.x.131 TIME-WAIT
+    946 x.x.x.135 TIME-WAIT
+   1104 x.x.x.135 FIN-WAIT-2
+   1105 x.x.x.138 FIN-WAIT-2
+   1108 x.x.x.131 FIN-WAIT-2
+   
+   
+   
+   这几台机器是进行端口映射以及负载均衡的机器。
+        
+   奇怪FIN_WAIT2 状态会有这么多，查看steven的tcp/ip书籍，绘制了如下的状态转移图：
+ 
+ 
+ 
+ 
+ 
+      A 				B
+ 
+ 
+   ESTABLISHED 			   ESTABLISHED
+	|				|
+	|  send  fin 			|
+	|----------------> 		|
+	|				|
+	V				|
+   FIN_WAIT1			        |
+	|				|
+	|				|
+	|			send ack|
+	|		<---------------|
+	|				|
+	V				V
+    FIN_WAIT2			    CLOSE-WAIT
+	|				|
+	|				|
+	|			send fin|
+	|		<---------------|
+	|				|
+	|				|
+	|				V
+	|			     LAST_ACK
+	|				|
+	|				|
+	|	send ack		|
+	|--------------->		|
+	|				|
+	|				|
+   TIME_WAIT			      CLOSED
+ 
+ 
+ 
+linux 机器上和ipv4配置相关的选项：/proc/sys/net/ipv4
+ 
+ 
+大致可以看到，这些FIN_WAIT2状态是这边服务器关闭连接后，
+另一端的服务器由于各种原因，没有关闭另一端的连接，才导致
+服务器上出现很多的FIN_WAIT2状态的tcp连接。
+ 
+ 
+ 
+ 
+ 
+2. linux 中和tcp连接相关的内核配置参数
+ 
+2.1 from linux kernel document[4]:
+ 
+	tcp_rmem - vector of 3 INTEGERs: min, default, max
+		min: Minimal size of receive buffer used by TCP sockets.
+		It is guaranteed to each TCP socket, even under moderate memory
+		pressure.
+		Default: 1 page
+	
+		default: initial size of receive buffer used by TCP sockets.
+		This value overrides net.core.rmem_default used by other protocols.
+		Default: 87380 bytes. This value results in window of 65535 with
+		default setting of tcp_adv_win_scale and tcp_app_win:0 and a bit
+		less for default tcp_app_win. See below about these variables.
+	
+		max: maximal size of receive buffer allowed for automatically
+		selected receiver buffers for TCP socket. This value does not override
+		net.core.rmem_max.  Calling setsockopt() with SO_RCVBUF disables
+		automatic tuning of that socket's receive buffer size, in which
+		case this value is ignored.
+		Default: between 87380B and 6MB, depending on RAM size.
+	
+	
+	min :表示tcp接受缓冲区的最小设置，即使在内存用紧的压力下，系统也会保持
+	这个最小配置。默认为 1 page, 4k, 4096 byte.
+	
+	default: tcp接受缓冲区的默认初始值，覆盖了net.core.rmem_default的配置大小，
+	
+	max: tcp缓冲区的最大值，此值不会覆盖net.core.rmem_max的设置。当通过此调用
+	设置缓冲区大小时候，会忽略此值。
+ 
+ 
+ 2.2 也可以通过 man 7 tcp 命令来查看 Linux Programmer's Manual 来查看tcp相关的选项。
+ 
+ 
+ 
+3.
+ 
+reference:
+ 
+1.
+http://www.serverframework.com/asynchronousevents/2011/01/time-wait-and-its-design-implications-for-protocols-and-scalable-servers.html
+ 
+2.The TIME-WAIT state in TCP and Its Effect on Busy Servers
+ 
+3. Unix networking progammming ( Volume 1 2.6 TCP Connection Establishment and Termination)
+	
+4. https://www.kernel.org/doc/Documentation/networking/ip-sysctl.txt
