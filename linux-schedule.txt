@@ -1,0 +1,63 @@
+1. 
+ 
+linux的调度器是以一个进程的形式在运行吗？
+ 
+如果不是以进程的形式运行，那么在一个进程的时间片运行结束时候，控制权是如何转移至
+调度器，由调度器选择下一进程来运行？
+ 
+以epoll系统调用来看，当进程调用epoll时候，会首先检查epollff里监听的文件描述符有没
+有准备好的状态，有的话直接返回，没有的话，会将自己的状态标识为TASK_INTERRUPTIBLE
+状态，进入睡眠状态，同时将自己放到某个等待队列上，同时会将自己从cpu的运行队列中移除，
+然后调用schedule方法来选取新的进程来执行。
+ 
+等待队列里维持着一个等待某个时间发生的进程列表，当此事件发生的时候，等待队列里面
+的进程会被唤醒，然后进程会把自己的状态标识为Runnable状态，并且将自己从等待队列移除，
+并且将自己加入运行队列，这样当进程调度的时候，就有机会重新运行了。
+ 
+ 
+这些事件一般为IO事件，signal事件，中断（硬件中断以及时钟中断等)
+ 
+ 
+这样当网卡上有数据包过来后，对应的socket文件描述符，会根据其等待队列里的保存的
+ 
+eventpoll句柄，来根据此eventpoll句柄来唤醒等待在此事件上的进程。
+ 
+ 
+ 
+ 
+2
+ 
+linux : mode switch
+ 
+user mode vs kernel mode  
+ 
+linux : context switch
+ 
+user thread vs kernel thread
+ 
+kernel control path
+ 
+3
+ 
+timer interrupt 
+hardware interrupt
+ 
+ 
+ 
+reference:
+ 
+1. http://www.quora.com/Operating-Systems/What-is-the-process-id-PID-of-the-process-scheduler
+2. http://www.quora.com/Operating-Systems/How-does-the-timer-interrupt-invoke-the-process-scheduler
+3. http://www.quora.com/Linux-Kernel/Why-cant-you-sleep-in-an-interrupt-handler-in-the-Linux-kernel-Is-this-true-of-all-OS-kernels
+4. http://stackoverflow.com/questions/7106050/what-context-does-the-scheduler-code-run-in
+5. http://superuser.com/questions/684185/does-an-operating-system-intervine-after-each-time-slice-quantum
+ 
+ 
+ 
+passage:
+ 
+Kernel Korner - Sleeping in the Kernel
+ 
+The Linux Scheduler
+ 
+Kernel Korner - I/O Schedulers
