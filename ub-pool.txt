@@ -1,0 +1,89 @@
+1.
+ 
+通过pstack命令可以打印出当前进程的堆栈信息，这是其中一个进程的堆栈信息：
+ 
+112 #0 0x00000034e700e54d in read () from /lib64/libpthread.so.0
+113 #1 0x00007fdc5db90ad0 in redisBufferRead () from /home/work/lib/libhiredis.so
+114 #2 0x00007fdc5db90d88 in redisGetReply () from /home/work/lib/libhiredis.so
+115 #3 0x00007fdc5db90f35 in redisvCommand () from /home/work/lib/libhiredis.so
+116 #4 0x00000000027737b2 in RedisConn::runCommandQuery(char const*, ...) ()
+117 #5 0x00000000027967f5 in DuokooSession::getUserInfoByUserId(long, UserInfo&) ()
+118 #6 0x000000000279559a in DuokooSession::getUserInfoBySession(std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, UserInfo&) ()
+119 #7 0x0000000002436778 in UserServlet::get_bind_phone(idl::user_get_bind_phone_params const&, idl::user_get_bind_phone_response&) ()
+120 #8 0x00000000017c3f85 in idl::user_servlet_trunk::dispatch(long, char const*, mc_pack_t const*, mc_pack_t*) ()
+121 #9 0x0000000002a2464f in ubrpc::Servlet::call(mc_pack_t const*, mc_pack_t*) ()
+122 #10 0x0000000002a24241 in ubrpc::Servlet::process(void*, unsigned int, void*, unsigned int) ()
+123 #11 0x0000000002a24993 in ubrpc::UbRpcServer::ub_call_back() ()
+124 #12 0x0000000002a248f8 in ubrpc::UbRpcServer::ub_call_back_entry() ()
+125 #13 0x0000000002991db1 in default_native() ()
+126 #14 0x000000000298cf06 in eppool_consume(_eppool_t*, _ub_server_pdata_t*) ()
+127 #15 0x000000000298cd61 in _eppool_workers(void*) ()
+128 #16 0x00000034e7007851 in start_thread () from /lib64/libpthread.so.0
+129 #17 0x00000034e6ce767d in clone () from /lib64/libc.so.6
+ 
+ 
+从这个堆栈信息中可以看出，通过clone系统调用创建的工作线程_eppool_workers，在获取到客户端的请求时候，
+通过注册的回调函数跳转至相应的业务逻辑代码。
+ 
+ 
+2.  
+ 
+ 
+eppool代码分析：
+ 
+大致的思路是一个主线程用于处理io事件（客户端的连接请求和rpc请求),一组工作线程用于处理客户端请求,
+ 
+主线程和工作线程通过一个socket队列来完成任务的传递。
+ 
+ 
+模型可以抽象成生产者和消费者模型，一个生产者和多个消费者，通过一个线程安全的同步队列来通讯。
+ 
+其中线程安全的同步队列是通过pthread中的 pthread_mutex_t 和pthread_cond_t来实现的。
+ 
+ 
+ 
+大概的图示意是这样子的：
+ 
+ 
+ 
+main_thread                    socket queue                       worker_thread
+                              --------------------------------->
+                              
+                              
+                              
+                              
+ 
+ 
+ 2.1 
+ 
+      主线程的逻辑大致如下：
+ 
+ 
+       _eppool_main 主线程 -----------> 循环调用 eppool_produce
+       
+       
+       
+       
+ 
+                                                socket read event
+       eppool_produce ---->  event loop ----------------------------->   eppool_put  ( 将有请求的socket放入队列里面，此队列长度可                                                                                        以配置，当队列满时，丢掉请求）
+ 
+ 
+                                              socket connect event
+                                        ----------------------------->   将socket fd加入到epollfd的监听列表中(此监听socket                                                                                数目可以配置）（超过最大值时，拒绝客户端连接）
+ 
+ 
+ 
+ 
+ 2.2 
+ 
+ 
+     工作线程逻辑如下：
+ 
+ 
+     _eppool_workers ---------------> 循环调用 eppool_consume
+     
+     
+ 
+      eppool_consume -------> eppool_get  （从队列里取出有请求的socket，进行业务逻辑处理）
+ 
