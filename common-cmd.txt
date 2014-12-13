@@ -1,0 +1,182 @@
+1. 
+ 
+保留最近的7天之内的文件，用于cron定时清理
+ 
+find /log -type f -ctime +7 | xargs rm -rf
+ 
+2. 
+ 
+从文本文件中找出http连接并下载
+tail text |  awk -F"(href=|>Download)" '{print $2}' | xargs -n 1 -P 50 wget 
+ 
+ 
+3.
+ 
+下载网页中的pdf下载文档
+「curl -s "www.percona.com/live/mysql-conference-2013/slides" | awk -F '(href=|>Download)' '$2 ~ /\.pdf/ { print $2 }' | xargs -n 1 -P 50 wget -q &」
+ 
+ 
+ 
+4.
+ 
+最常使用的命令
+ 
+history | awk '{cmd[$2]++;count++;} END { for (a in cmd) print cmd[a] " " cmd[a]/count*100 "% " a;}' | grep -v './' | column -c3 -s " " -t | nl | head -10
+ 
+ 
+ 
+5.
+ 
+查看网络连接
+ 
+ss -ant | awk ' NR>1 {++s[$1]} END {for(k in s) print k,s[k]}'
+ 
+ 
+6. 
+ 
+统计项目代码
+ 
+find . -name '*[c|h]' | xargs wc -l
+ 
+find Documents -name "*.py" -o -name "*.html"
+ 
+find . -regextype posix-egrep -regex ".*\.(c|java|clj)$" | xargs wc -l
+ 
+ 
+7.
+ 
+网络端口号使用情况
+netstat -an | grep port
+ 
+lsof -i:port
+ 
+ 
+8.
+ 
+从文件末尾往前搜索某个字段
+search from end of file 
+ 
+:1?XXXX
+ 
+the next one n  the previous one  shift + n
+ 
+ 
+ 
+9.
+ 
+定时刷新某个操作
+ 
+watch -n 1 -d  command
+ 
+ 
+ 
+10.
+ 
+打包
+zip -r outputname *
+ 
+ 
+11.
+ 
+readlink -f $(which java)
+ 
+ 
+ 
+12.
+ 
+替换
+ls | grep file.* | xargs wc -l | awk '{ sub(/pattern/,replace); print}' | awk '{ print '
+ 
+ 
+ 
+:%s/FindMe/ReplaceME/g
+ 
+ 
+ 
+ 
+ll | grep '\.o' | awk '{ sum +=$5} END { print sum} '
+ 
+ 
+ 
+13.
+ 
+mvn 创建新工程代码
+ 
+ 
+ 
+mvn archetype:generate -DarchetypeGroupId=org.apac
+he.maven.archetypes -DarchetypeArtifactId=maven-archetype-quickstart -Darchetype
+Verion=0.0.1-SNAPSHOT -DgroupId=com.baidu.duoku -DartifactId=gamesdk-thirdparty
+ 
+ 
+ 
+ 
+ 
+1.创建父目录
+mvn archetype:generate -DgroupId=me.davenkin -DartifactId=maven-multi-module 
+ 
+-DarchetypeGroupId=org.codehaus.mojo.archetypes -DarchetypeArtifactId=pom-root -DinteractiveMode=false
+ 
+ 
+2.创建子目录
+ 
+ 
+mvn archetype:generate -DgroupId= -DartifactId= 
+ 
+-DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
+ 
+ 
+3. 多子模块时候只编译需要的模块
+ 
+mvn install -pl B -am
+ 
+ 
+14.
+ 
+编译打包文件
+ 
+mvn clean compile package install -Dmaven.test.skip=true -P online
+ 
+ 
+ 
+15.
+ 
+ 
+tar -xvzf 
+ 
+tar -cvzf
+ 
+ 
+jar -xvf yourWARfileName.war
+ 
+ 
+jar xf jarfilename.jar
+ 
+ 
+ 
+16.
+ 
+网络相关命令
+ 
+netstat -tulpn | grep pid
+ 
+ 
+ 
+lsof -i :portNumber
+lsof -i tcp:portNumber
+lsof -i udp:portNumber
+lsof -i :80
+lsof -i :80 | grep LISTEN
+ 
+ 
+ 
+ fuser 7000/tcp
+ 
+ 
+grep '#define __FD_SETSIZE' /usr/include/*.h /usr/include/*/*.h
+ 
+ 
+netstat -n | awk '/^tcp/ { ++S[$NF] } END { for(a in S) print a,S[a] }'
+ 
+ 
+sysctl -a | grep port
