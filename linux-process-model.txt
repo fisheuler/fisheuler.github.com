@@ -1,0 +1,36 @@
+1. linux 进程地址空间 
+ 
+分为内核空间和用户空间。
+ 
+内核空间会映射到所有的进程的虚拟地址空间上，所以从共享内存的角度来看，所有的进程都共享着内核空间。
+ 
+进程的用户空间 ，分为几大区域：
+ 
+     进程程序和数据区域（text segment，data segment，bss segment）
+     进程heap区域（通过malloc等程序申请的内存区域）
+     进程memory mapping segment（mmap等映射的区域）
+     进程stack区域（程序调用堆栈记录）
+ 
+每个区域通过一个内核数据结构 vm_area_struct 来代表。
+ 
+这些虚拟地址空间，最后通过页表来映射到具体的实际物理内存
+ 
+ 
+ 
+ 
+ 
+ 
+2. linux memory management
+ 
+http://web.mit.edu/tytso/www/linux/ext2intro.html
+ 
+http://www.mjmwired.net/kernel/Documentation/filesystems/vfs.txt
+ 
+http://www.tldp.org/LDP/tlk/fs/filesystem.html
+ 
+ 
+ 
+reference:
+1.http://duartes.org/gustavo/blog/post/anatomy-of-a-program-in-memory/
+2.http://duartes.org/gustavo/blog/post/how-the-kernel-manages-your-memory/
+3.http://duartes.org/gustavo/blog/post/page-cache-the-affair-between-memory-and-files/
