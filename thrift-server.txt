@@ -1,0 +1,108 @@
+1 
+ 
+TServer :抽象的server基类。
+ 
+ 
+1.1
+ 
+AbstractNonblockingServer  继承TServer的非阻塞基类 。
+ 
+在此类里定义了一个AbstractSelectThread 类，此类是基于reactor模型的实现，在单线程里实现整套处理逻辑。
+ 
+除了线程类之外，还定义有FrameBuffer以及AsyncFrameBuffer类。FrameBuffer类主要是根据协议定义来实现
+从底层的transport对象中读取完整的一次请求数据流，以及负责完成response的写操作。因为tcp协议是一个
+流协议，所以需要定义一套协议来完整的读取一个输入请求。FrameBuffer中读取一个请求数据的过程，是用
+状态机的原理来实现，类似的http协议也需要相应的状态机来完成的读取一次请求数据，然后将数据打包，之后
+可以自己处理相应的请求，或者将此数据代表的任务(task)hand off 至第三方处理（比如线程池）。
+ 
+AsyncFrameBuffer继承自FrameBuffer类，主要是用于hand off 作用的，将请求转发至第三方来处理。
+ 
+ 
+ 
+ 
+1.2
+ 
+TNonblockingServer 继承自AbstractNonblockingServer类。是基于java中的nio机制，在单个线程内实现reactor模型。
+所有的处理，包括accept,read,write这些操作都在一个线程类SelectAcceptThread里来完成操作。
+ 
+ 
+模型图大致为：
+ 
+ 
+                    ------------> handle accept
+ 
+single thread loop  ------------> handler read + handle task 
+ 
+                    ------------> handler write 
+ 
+ 
+ 
+ 
+ 
+ 
+1.3
+ 
+TThreadedSelectorServer 继承自AbstractNonblockingServer类。相比于TNonblockingServer和THsHaServer 的优势
+在于能够充分发挥多核的优势，当单线程模型中的CPU处理不过来I/O请求时候后，可以采用此模型。并且此模型将accept
+事件放在独立的线程中处理，从select线程中剥离出来。可以在业务比较繁重时候，依然可以接受客户端的请求。
+ 
+ 
+模型图大致为：
+ 
+ 
+ 
+ 
+                                                               select thread loop 1
+ 
+                     
+ 
+                    accept client                                                        read(write)event ,hand off task 
+accept thread loop ---------------->   BlockingQueue ----->     select thread loop 2   --------------------------------- > ExecutorService
+                                                                    .
+                                                                    .
+                                                                    .
+                                                               select thread loop n  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+1.4
+ 
+ 
+THsHaServer 继承自TNonblockingServer 
+ 
+将原来在单线程中执行的任务剥离出来，放到一个独立的线程池中处理
+ 
+ 
+ 
+ 
+ 
+ 
+                    ------------> handle accept
+                                                      hand off task                                                             
+single thread loop  ------------> handler read    ------------------------> ExecutorService         
+ 
+                    ------------> handler write 
+ 
+ 
+ 
+在TNonblockingServer中，当FrameBuffer解析出一个正常的请求时候，会直接调用requestInvoke方法，
+该方法直接调用frameBuffer.invoke()方法来同步执行任务。而在THsHaServer实现中，override了
+requestInvoke方法，会将任务打包成Runnable任务，提交给thread pool来执行。
+ 
+ 
+ 
+1.5
+ 
+TThreadPoolServer ，是传统的线程池模型。主线程用来接受客户端的连接，连接完毕之后封装成一个Runnable对象。
+将Runnable对象放到一个线程池来处理客户端的请求。线程池是通过java中的ThreadPoolExecutor。
+ 
+ 
+ 
+              client accept    
+accept loop --------------------> pack the client socket and submit to the pool -----------> thread pool
