@@ -1,0 +1,28 @@
+1
+ 
+服务器端启动rsyncd daemon
+ 
+/usr/bin/rsync --daemon --port 3334 --config=/home/work/rsync/etc/rsyncd.conf
+ 
+ 
+1.1 rsyncd.conf 是rsyncd相关的目录和权限设置
+ 
+  [projectName]
+  path = projectDir
+  comment = test
+  auth users = work
+  uid = root
+  gid = root
+  secrets file = /home/work/rsync/etc/rsync.pas
+  read only = false
+  write only = yes
+rsync.pas文件是用户认证的用户名和密码
+ 
+ 
+2.
+ 
+在需要同步的机器上客户端上调用rsync客户端程序来同步文件和目录
+ 
+ 
+/usr/bin/rsync -vzrtopg --progress  --password-file=/pathdir/rsync.pas --port=3334 /rsync/dir work@machineip::projectName/
+  
