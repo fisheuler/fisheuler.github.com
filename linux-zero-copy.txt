@@ -1,0 +1,136 @@
+1. from man pages
+ 
+sendfile
+ 
+sendfile copies data between one file descriptor and another. Because this copying is done within
+the kernel, sendfile is more efficient than the combination of read and write, which would require
+transferring data to and from user space.
+ 
+ 
+ 
+http://linux.die.net/man/2/sendfile
+ 
+ 
+splice
+ 
+move data between two file descriptors without copying between kernel address space and user address
+space. 
+ 
+Though we talk of copying ,actual copies are generally avoied . The kernel does this by implementing
+a pipe buffer as a set of reference-counted pointers to pages of kernel memory. The kernel creates "copies" of pages in a buffer by creating new pointers referring to the pages, and increasing the 
+reference counts for the pages: only pointers are copied, not the pages of the buffer.
+ 
+ 
+ 
+2. reference:
+ 
+Linux 中的零拷贝技术，第 1 部分
+ 
+http://www.ibm.com/developerworks/cn/linux/l-cn-zerocopy1/index.html
+ 
+ 
+Linux 中的零拷贝技术，第 2 部分
+ 
+http://www.ibm.com/developerworks/cn/linux/l-cn-zerocopy2/index.html
+ 
+ 
+ 
+Zero Copy I: User-Mode Perspective
+ 
+http://www.linuxjournal.com/node/6345/print
+ 
+ 
+ 
+Efficient data transfer through zero copy
+ 
+http://www.ibm.com/developerworks/library/j-zerocopy/index.html
+ 
+ 
+Exploring The sendfile System Call 
+ 
+https://www.ischool.utexas.edu/mirrors/LDP/LDP/LGNET/issue91/tranter.html
+ 
+ 
+sendfile form email exchanges
+ 
+http://yarchive.net/comp/linux/sendfile.html
+ 
+ 
+ 
+ 
+3. code example
+ 
+ 
+ 
+#include<sys/socket.h>
+#include<netinet/in.h>
+#include<arpa/inet.h>
+#include<assert.h>
+#include<stdio.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<errno.h>
+#include<string.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+#include<sys/sendfile.h>
+ 
+int main(int argc , char* argv[])
+{
+	if(argc <=3)
+	{
+		printf("usage: %s ip_address port_number filename \n",basename(argv[0]));
+		return 1;
+	}
+ 
+	const char* ip = argv[1];
+	int port = atoi(argv[2]);
+ 
+	const char* file_name = argv[3];
+ 
+	int filefd = open(file_name,O_RDONLY);
+ 
+	assert(filefd > 0);
+ 
+	struct stat stat_buf;
+ 
+	fstat(filefd,&stat_buf);
+ 
+	struct sockaddr_in address;
+ 
+	bzero(&address,sizeof(address));
+ 
+	address.sin_family = AF_INET;
+	inet_pton(AF_INET,ip,&address.sin_addr);
+	address.sin_port = htons(port);
+ 
+ 
+	int sock = socket(PF_INET,SOCK_STREAM,0);
+	assert(ret != -1);
+ 
+	ret = listen(sock,5);
+ 
+	assert(ret != -1)
+ 
+	struct sockaddr_in client;
+ 
+	socklen_t client_addrlength = sizeof(client);
+ 
+	int connfd = accept(sock,(struct sockaddr*)&client,&client_addrlength);
+ 
+	if(connfd < 0)
+	{
+		printf("errno is : %d\n",errno);
+	}
+	else
+	{
+		sendfile(connfd,filefd,NULL,stat_buff.st_size);
+		close(connfd);
+	}
+ 
+ 
+	close(sock);
+ 
+	return 0;
+}
