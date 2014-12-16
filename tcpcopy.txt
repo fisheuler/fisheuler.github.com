@@ -1,5 +1,6 @@
 
 tcpcopy地址：
+
 https://github.com/session-replay-tools/intercept.git
 
 
@@ -15,7 +16,9 @@ tcpdump -i eth0 tcp port 8080 -w test.pcap
  
 
 90机器：
+
 安装intercept程序，安装目录：
+
 /usr/local/intercept/sbin
  
 安装之后需要配置路由：
@@ -23,6 +26,7 @@ tcpdump -i eth0 tcp port 8080 -w test.pcap
 route add -host 10.11.0.91 gw 10.11.0.90
  
 之后可以启动了
+
 ./intercept -i em1 -F tcp and src port 10086 -d
  
 
