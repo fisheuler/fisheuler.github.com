@@ -1,0 +1,41 @@
+
+tcpcopy地址：
+https://github.com/session-replay-tools/intercept.git
+
+
+可以在线模拟和离线模拟。
+
+下面是搭建离线模拟的环境：
+ 
+首先需要通过tcpdump抓包：
+ 
+tcpdump -i eth0 tcp port 8080 -w test.pcap
+ 
+然后需要在测试机器上面安装intercept包，在另一台机器上面安装tcpcopy来发送会话请求。
+ 
+
+90机器：
+安装intercept程序，安装目录：
+/usr/local/intercept/sbin
+ 
+安装之后需要配置路由：
+
+route add -host 10.11.0.91 gw 10.11.0.90
+ 
+之后可以启动了
+./intercept -i em1 -F tcp and src port 10086 -d
+ 
+
+ 
+91 机器：
+ 
+ 
+tcpburn的安装目录和信息：
+tcpburn path prefix: "/usr/local/tcpburn"
+tcpburn binary file: "/usr/local/tcpburn/sbin/tcpburn"
+tcpburn pid file: "/usr/local/tcpburn/logs/tcpburn.pid"
+tcpburn error log file: "/usr/local/tcpburn/logs/error_tcpburn.log"
+ 
+ 
+
+./tcpburn -x 8080-10.11.0.90:10086 -f test.pcap -s 10.11.0.90 -u 10000 -c 10.11.0.91 -l test.pcap
