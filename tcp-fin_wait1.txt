@@ -1,0 +1,139 @@
+
+
+tcp的FIN_WAIT1状态
+
+FIN_WAIT1状态，为tcp连接的一方主动关闭连接之后，未接收到对方的fin ack报文时候所处于的状态。
+正常情况下，当收到对方的ack报文之后，就会从FIN_WAIT1状态转换为FIN_WAIT2状态。
+
+但在某些情况下，对端没有发送ack确认报文，却连续发送了windows=0的窗口通知，就会使连接进入tcp
+的zero windows probe处理机制，就会导致主动关闭的一方处于FIN_WAIT1状态下，导致此条连接所占
+有的系统资源（内存）不能被系统回收利用。如果系统中同时存在大量此种状态的socket连接时候，就
+会消耗大量的系统内存资源，最终当系统根据配置不能给tcp分配更多系统内存时候，会导致out of socket
+memory错误。
+
+linux内核中为了避免此种情况导致的ddos攻击，有两种配置参数来控制此种状态下的内核处理机制。
+
+
+tcp_max_orphans
+
+tcp_orphan_retries
+
+
+orphan的意思其实就是，从应用程序来看，此条socket连接已经收发数据完毕，关闭了此连接，但是linux
+内核中为了完成正常的tcp协议（比如缓冲区中的数据）转换，会在内核的tcp协议层继续维护这些sock状态，
+直至系统回收。处于此种状态下的socket就是orphan socket。
+
+
+这两个参数的意思是：
+
+tcp_max_orphans，系统tcp协议层所维护的处于orphan状态的sock的最大数目，
+                 这个可以归类于tcp层资源管理的模块，即是处于orphan状态的sock最多有多少数目，这样
+                 就可以控制这些数据所占用的tcp memory的值了，从而可以灵活的控制它们所能占用的内存
+                 资源
+                 
+tcp_orphan_retries 即是前面当socket处于孤儿状态后，需要侦探多少次之后才关闭此连接。
+                  （如果对方有windows=0的回应，则会进入zero windows probe状态，不会关闭此连接，
+                   但是，会通过tcp_max_orphans参数来控制此连接数量）
+                  （如果超过了重试次数，则会回收此资源）
+
+需要注意的一点是 tcp_orphan_retries，当设置为0的时候，所代表的意义：
+
+ 85 /* Calculate maximal number or retries on an orphaned socket. */
+ 86 static int tcp_orphan_retries(struct sock *sk, int alive)
+ 87 {
+ 88         int retries = sysctl_tcp_orphan_retries; /* May be zero. */
+ 89 
+ 90         /* We know from an ICMP that something is wrong. */
+ 91         if (sk->sk_err_soft && !alive)
+ 92                 retries = 0;
+ 93 
+ 94         /* However, if socket sent something recently, select some safe
+ 95          * number of retries. 8 corresponds to >100 seconds with minimal
+ 96          * RTO of 200msec. */
+ 97         if (retries == 0 && alive)
+ 98                 retries = 8;
+ 99         return retries;
+100 }
+
+内核代码可以知道，当设置为0的时候，系统会转换为8。
+
+这是一些内核代码：
+
+/* Do not allow orphaned sockets to eat all our resources.
+ 45  * This is direct violation of TCP specs, but it is required
+ 46  * to prevent DoS attacks. It is called when a retransmission timeout
+ 47  * or zero probe timeout occurs on orphaned socket.
+ 48  *
+ 49  * Criteria is still not confirmed experimentally and may change.
+ 50  * We kill the socket, if:
+ 51  * 1. If number of orphaned sockets exceeds an administratively configured
+ 52  *    limit.
+ 53  * 2. If we have strong memory pressure.
+ 54  */
+ 55 static int tcp_out_of_resources(struct sock *sk, int do_reset)
+
+
+
+
+
+ 如果执行tcp_out_of_resources，就会执行tcp_check_oom
+
+2055 bool tcp_check_oom(struct sock *sk, int shift)
+2056 {
+2057     bool too_many_orphans, out_of_socket_memory;
+2058 
+2059     too_many_orphans = tcp_too_many_orphans(sk, shift);
+2060     out_of_socket_memory = tcp_out_of_memory(sk);
+2061 
+2062     if (too_many_orphans)
+2063         net_info_ratelimited("too many orphaned sockets\n");
+2064     if (out_of_socket_memory)
+2065         net_info_ratelimited("out of memory -- consider tuning tcp_mem\n");
+2066     return too_many_orphans || out_of_socket_memory;
+2067 }    
+
+而tcp_check_oom会去执行tcp_too_many_orphans
+
+ 299 static inline bool tcp_too_many_orphans(struct sock *sk, int shift)
+ 300 {
+ 301     struct percpu_counter *ocp = sk->sk_prot->orphan_count;
+ 302     int orphans = percpu_counter_read_positive(ocp);
+ 303 
+ 304     if (orphans << shift > sysctl_tcp_max_orphans) {
+ 305         orphans = percpu_counter_sum_positive(ocp);
+ 306         if (orphans << shift > sysctl_tcp_max_orphans)
+ 307             return true;
+ 308     }
+ 309     return false;
+ 310 }
+
+
+从tcp_too_many_orphans函数中我们可以获知，现有的orphan数目和系统配置的数目比较时候，orphan可能会
+根据实际情况做一下位移操作，位移位数大致为1到2，所以系统有可能在配置的1/4至1/2范围内就会回收orphan
+socket了。
+
+
+
+
+reference：
+
+1.http://blog.tsunanet.net/2011/03/out-of-socket-memory.html
+
+2.http://jaseywang.me/2012/05/09/%E5%85%B3%E4%BA%8E-out-of-socket-memory-%E7%9A%84%E8%A7%A3%E9%87%8A-2/
+
+3.Exploiting TCP and the Persist Timer Infiniteness
+ http://sock-raw.org/papers/tcp_persist
+ http://phrack.org/issues/66/9.html
+ 这篇文章所在的网址phrack，是一个网络杂志，发表的都是一些相当有深度的文章和见解。可以参考wiki的介绍。
+ Smashing The Stack For Fun And Profit
+ http://phrack.org/issues/49/14.html
+4.https://www.kernel.org/doc/Documentation/networking/ip-sysctl.txt
+5.http://www.recurity-labs.com/content/pub/Microsoft_Windows_CVE-2009-1926_MS09-048.txt
+6.tcp: abort orphan sockets stalling on zero window probes
+ http://patchwork.ozlabs.org/patch/394623/
+7. Recurity Labs on TCP Vulnerabilities
+http://www.recurity-labs.com/content/pub/25C3TCPVulnerabilities.pdf
+
+ 
+
+
