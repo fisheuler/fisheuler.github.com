@@ -1,0 +1,32 @@
+
+某个表中，先根据某字段进行group，然后对每个group中的记录，根据某个条件选择出合适的record记录来。
+
+如下所示：选择每个组中最新的那条记录（根据starttime来判断）
+
+        SELECT *, COUNT(*) FROM 
+        
+        (
+            SELECT * FROM crm_package_info ORDER BY starttime DESC 
+            
+        ) temp 
+        
+        GROUP BY gameid ORDER BY starttime DESC;
+
+
+或者：
+
+        select * from
+        (
+            select gameid,max(starttime) as starttime,count(*) 
+              
+              	from crm_package_info 
+              
+              group by gameid
+        
+        ) temp inner join crm_package_info as crm 
+        
+        on temp.gameid = crm.gameid and temp.starttime = crm.starttime
+        
+        order by starttime desc;
+        
+        
