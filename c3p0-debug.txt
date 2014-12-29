@@ -1,0 +1,101 @@
+c3p0
+
+pool-4线程池中的20个线程都阻塞在此方法内。
+
+"pool-4-thread-20" prio=10 tid=0x00007ff3e0023800 nid=0x582f in Object.wait() [0x00007ff4982ea000]
+   java.lang.Thread.State: WAITING (on object monitor)
+	at java.lang.Object.wait(Native Method)
+	at com.mchange.v2.resourcepool.BasicResourcePool.awaitAvailable(BasicResourcePool.java:1315)
+	at com.mchange.v2.resourcepool.BasicResourcePool.prelimCheckoutResource(BasicResourcePool.java:557)
+	- locked <0x00000000c002aba0> (a com.mchange.v2.resourcepool.BasicResourcePool)
+	at com.mchange.v2.resourcepool.BasicResourcePool.checkoutResource(BasicResourcePool.java:477)
+	at com.mchange.v2.c3p0.impl.C3P0PooledConnectionPool.checkoutPooledConnection(C3P0PooledConnectionPool.java:525)
+	at com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource.getConnection(AbstractPoolBackedDataSource.java:128)
+	at org.guzz.transaction.WriteConnectionFetcher.openRWConn(WriteTranSessionImpl.java:585)
+	at org.guzz.transaction.WriteConnectionFetcher.getConnection(WriteTranSessionImpl.java:576)
+	at org.guzz.transaction.ConnectionsGroup.getConnection(ConnectionsGroup.java:124)
+	at org.guzz.transaction.AbstractTranSessionImpl.getConnection(AbstractTranSessionImpl.java:135)
+	at org.guzz.transaction.AbstractTranSessionImpl.getConnection(AbstractTranSessionImpl.java:131)
+	at org.guzz.transaction.WriteTranSessionImpl.executeUpdate(WriteTranSessionImpl.java:371)
+	at com.duoku.soa.crm.packages.dao.impl.PackageInfoDaoImpl.updateGameCodeNum(PackageInfoDaoImpl.java:81)
+	at com.duoku.soa.crm.packages.facade.impl.DatabaseFacadeImpl.insPackageDetail(DatabaseFacadeImpl.java:66)
+	at com.duoku.soa.crm.packages.PackageThriftServiceImpl.reimportPackageDetail(PackageThriftServiceImpl.java:1570)
+	at com.duoku.soa.crm.packages.PackageThriftService$Processor$reimportPackageDetail.getResult(PackageThriftService.java:2494)
+	at com.duoku.soa.crm.packages.PackageThriftService$Processor$reimportPackageDetail.getResult(PackageThriftService.java:2479)
+	at org.apache.thrift.ProcessFunction.process(ProcessFunction.java:39)
+	at org.apache.thrift.TBaseProcessor.process(TBaseProcessor.java:39)
+	at com.duoku.soa.larva.thrift.LarvaSingleProcessor.process(LarvaSingleProcessor.java:38)
+	at org.apache.thrift.server.AbstractNonblockingServer$FrameBuffer.invoke(AbstractNonblockingServer.java:516)
+	at com.duoku.soa.larva.thrift.server.LarvaInvocation.run(LarvaInvocation.java:34)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1110)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:603)
+	at java.lang.Thread.run(Thread.java:679)
+	
+	通过跟踪BasicResourcePool的代码，当从连接池中获取可用链接时候，卡在如下的调用流程中：
+	
+	
+	checkoutResource ----> prelimCheckoutResource --------> awaitAvailable
+	
+	
+	
+	在awaitAvailable方法内有此处逻辑,会循环等待看可用链接池是否为空。
+	
+	
+1297            while ((avail = unused.size()) == 0) 
+1298            {
+1299                // the if case below can only occur when 1) a user attempts a
+1300                // checkout which would provoke an acquire; 2) this
+1301                // increments the pending acquires, so we go to the
+1302                // wait below without provoking postAcquireMore(); 3)
+1303                // the resources are acquired; 4) external management
+1304                // of the pool (via for instance unpoolResource() 
+1305                // depletes the newly acquired resources before we
+1306                // regain this' monitor; 5) we fall into wait() with
+1307                // no acquires being scheduled, and perhaps a managed.size()
+1308                // of zero, leading to deadlock. This could only occur in
+1309                // fairly pathological situations where the pool is being
+1310                // externally forced to a very low (even zero) size, but 
+1311                // since I've seen it, I've fixed it.
+1312                if (pending_acquires == 0 && managed.size() < max)
+1313                    _recheckResizePool();
+1314
+1315                this.wait(timeout);
+1316                if (timeout > 0 && System.currentTimeMillis() - start > timeout)
+1317                    throw new TimeoutException("A client timed out while waiting to acquire a resource from " + this + " -- timeout at awaitAvailable()");
+1318                if (force_kill_acquires)
+1319                    throw new CannotAcquireResourceException("A ResourcePool could not acquire a resource from its primary factory or source.");
+1320                ensureNotBroken();
+1321            }
+
+	
+	
+	需要注意的一点是在此方法之前需要先获取对应的BasicResourcePool实例的锁。往上回溯，发现在
+	
+	checkoutResource方法内通过synchronized关键字已经获取了此实例的锁。
+	
+481         synchronized( this )
+482         {
+483             if (!refurb)
+484             {
+485                 removeResource( resc );
+486                 ensureMinResources();
+487                 resc = null;
+488             }
+489             else
+490             {
+             ........................
+
+
+  由此可以得知，所有的线程池都阻塞在此处，等待可用链接。应该是在某处没有
+  
+  调用相应的notify方法，导致线程卡在此处。
+  
+  此类里的checkinResource用于将链接归还给pool池。
+  
+  public synchronized void checkinResource( Object resc ) 
+  
+  通过review代码，可以看出是在应用程序调用pool池获取链接，完成操作之后，
+  
+  没有调用相应的close方法，导致没有将链接归还给pool池，从而将后续的所有
+  
+  获取链接的线程阻塞住。
