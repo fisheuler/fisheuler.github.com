@@ -117,24 +117,25 @@ socket了。
 
 reference：
 
-1.http://blog.tsunanet.net/2011/03/out-of-socket-memory.html
+1. http://blog.tsunanet.net/2011/03/out-of-socket-memory.html
 
-2.http://jaseywang.me/2012/05/09/%E5%85%B3%E4%BA%8E-out-of-socket-memory-%E7%9A%84%E8%A7%A3%E9%87%8A-2/
+2. http://jaseywang.me/2012/05/09/%E5%85%B3%E4%BA%8E-out-of-socket-memory-%E7%9A%84%E8%A7%A3%E9%87%8A-2/
 
-3.Exploiting TCP and the Persist Timer Infiniteness
- http://sock-raw.org/papers/tcp_persist
- http://phrack.org/issues/66/9.html
- 这篇文章所在的网址phrack，是一个网络杂志，发表的都是一些相当有深度的文章和见解。可以参考wiki的介绍。
- Smashing The Stack For Fun And Profit
- http://phrack.org/issues/49/14.html
-4.https://www.kernel.org/doc/Documentation/networking/ip-sysctl.txt
-5.http://www.recurity-labs.com/content/pub/Microsoft_Windows_CVE-2009-1926_MS09-048.txt
-6.tcp: abort orphan sockets stalling on zero window probes
- http://patchwork.ozlabs.org/patch/394623/
+3. Exploiting TCP and the Persist Timer Infiniteness
+   http://sock-raw.org/papers/tcp_persist
+   http://phrack.org/issues/66/9.html
+   这篇文章所在的网址phrack，是一个网络杂志，发表的都是一些相当有深度的文章和见解。可以参考wiki的介绍。
+   Smashing The Stack For Fun And Profit
+   http://phrack.org/issues/49/14.html
+4. https://www.kernel.org/doc/Documentation/networking/ip-sysctl.txt
+5. http://www.recurity-labs.com/content/pub/Microsoft_Windows_CVE-2009-1926_MS09-048.txt
+6. tcp: abort orphan sockets stalling on zero window probes
+   http://patchwork.ozlabs.org/patch/394623/
 7. Recurity Labs on TCP Vulnerabilities
-http://www.recurity-labs.com/content/pub/25C3TCPVulnerabilities.pdf
+   http://www.recurity-labs.com/content/pub/25C3TCPVulnerabilities.pdf
 8. http://code.metager.de/source/history/linux/stable/net/ipv4/tcp.c
-
+9. TCP connection will hang in FIN_WAIT1 after closing if zero window is advertised
+   http://www.spinics.net/lists/netdev/msg296539.html
 
 
 code sample:
