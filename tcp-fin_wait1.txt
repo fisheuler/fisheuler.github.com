@@ -133,6 +133,7 @@ reference：
  http://patchwork.ozlabs.org/patch/394623/
 7. Recurity Labs on TCP Vulnerabilities
 http://www.recurity-labs.com/content/pub/25C3TCPVulnerabilities.pdf
+8. http://code.metager.de/source/history/linux/stable/net/ipv4/tcp.c
 
 
 
