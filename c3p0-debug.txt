@@ -31,14 +31,14 @@ pool-4线程池中的20个线程都阻塞在此方法内。
 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:603)
 	at java.lang.Thread.run(Thread.java:679)
 	
-	通过跟踪BasicResourcePool的代码，当从连接池中获取可用链接时候，卡在如下的调用流程中：
+	通过跟踪BasicResourcePool的代码，当从连接池中获取可用socket时候，卡在如下的调用流程中：
 	
 	
 	checkoutResource ----> prelimCheckoutResource --------> awaitAvailable
 	
 	
 	
-	在awaitAvailable方法内有此处逻辑,会循环等待看可用链接池是否为空。
+	在awaitAvailable方法内有此处逻辑,会循环等待看可用连接池是否为空。
 	
 	
 1297            while ((avail = unused.size()) == 0) 
@@ -86,16 +86,16 @@ pool-4线程池中的20个线程都阻塞在此方法内。
              ........................
 
 
-  由此可以得知，所有的线程池都阻塞在此处，等待可用链接。应该是在某处没有
+  由此可以得知，所有的线程池都阻塞在此处，等待可用连接。应该是在某处没有
   
   调用相应的notify方法，导致线程卡在此处。
   
-  此类里的checkinResource用于将链接归还给pool池。
+  此类里的checkinResource用于将socket归还给pool池。
   
   public synchronized void checkinResource( Object resc ) 
   
-  通过review代码，可以看出是在应用程序调用pool池获取链接，完成操作之后，
+  通过review代码，可以看出是在应用程序调用pool池获取socket，完成操作之后，
   
   没有调用相应的close方法，导致没有将链接归还给pool池，从而将后续的所有
   
-  获取链接的线程阻塞住。
+  获取socket的线程阻塞住。
