@@ -1,0 +1,47 @@
+
+
+Emacs contributions, C and Lisp
+
+
+Karl Fogel
+
+Everyone here understands the tradeoff:  there is an inherent tension between 
+promoting freedom by building a protective wall around our city, and promoting 
+freedom by interoperating with non-free environments so that people in those 
+environments have a chance to experience freedom.  Historically, the FSF has 
+used both strategies -- so you, too, understand this tradeoff.
+
+
+Richard Stallman
+
+I will try to find out more about these refactoring practices --
+privately, with people I have confidence in, that have no axe to
+grind ( advocate somthing for the benefits of oneself)
+
+
+LLVM is a real technical step forward, yoked to a step backward in
+defending our freedom.  If it were just the former, I would be
+enthusiastic for it.  However, the latter is more important, so we
+must do our best to resist it, even temporarily
+
+
+LLVM is free software.  It is undefended by copyleft, ideal for Apple
+to make it proprietary.  That's why it is a big step backwards.
+Nonetheless the version that the researchers work on is free.
+
+
+> Since LLVM and Clang are not copylefted, they invite nonfree
+> extensions. They are a gaping hole in the defensive wall around our
+> city
+
+David Kastrup
+
+at some point of time we draw a
+line of where we try exerting control over what people use tools for
+
+Perry E. Metzger
+
+clang/LLVM also provide a very friendly set of libraries to make it
+easy for people to go in, walk the AST, pattern match on it, refactor
+it, etc. -- the tools are being used extensively in industry for
+refactoring support
