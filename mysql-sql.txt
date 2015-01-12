@@ -1,5 +1,5 @@
 
-某个表中，先根据某字段进行group，然后对每个group中的记录，根据某个条件选择出合适的record记录来。
+1. 某个表中，先根据某字段进行group，然后对每个group中的记录，根据某个条件选择出合适的record记录来。
 
 如下所示：选择每个组中最新的那条记录（根据starttime来判断）
 
@@ -30,3 +30,13 @@
         order by starttime desc;
         
         
+        
+
+2. insert if not exist(based one some unique key ) ,otherwise just update  the record   
+
+insert into tableName(talbeColumn)
+        values(talbeColumnValues)
+on duplicate key update columnKeyOne=values(columKeyOne),columnKeyTwo=values(columnKeyTwo)....
+
+
+
