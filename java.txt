@@ -1,0 +1,70 @@
+
+core java 
+
+4.5 method parameter
+
+  two kind of method parameter
+  
+  primitive 
+  
+  object reference (a reference to a object)
+  
+  
+  
+  primitive 
+  
+  
+  a ----->  value
+        
+  primitive copy     
+                   
+  b ----->  value
+  
+  
+  
+  
+  reference copy
+  
+  
+  a  -------------->      o
+                          b
+                          j
+ reference copy           e
+                          c
+                          t
+  b --------------->
+  
+  
+  
+  in java ,the parameter are call by reference
+  
+  
+  
+  swap(x, y)
+  {
+    temp = x
+    x = y
+    y = temp
+  }
+  
+  swap(a,b)
+  
+  
+  
+  a  -------------->      o                       b --------------------->  o
+                          b                                                 b
+                          j                                                 j
+ reference copy           e                       reference copy            e
+                          c                                                 c
+                          t                                                 t
+  x --------------->      a                       y ----------------------> b
+  
+  
+  temp = x   , temp reference object a 
+  x = y ,     x reference object b
+  y =temp,    y reference object a 
+  
+  and a and b still reference their original object 
+  
+  
+  
