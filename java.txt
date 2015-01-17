@@ -68,3 +68,45 @@ core java
   
   
   
+ 2 
+ 
+  unpark/park memory visibility
+ 
+ 
+  java pack / unpack   similar to wait / notify
+  
+  
+  park may return spuriously (虚假的），So you should always check that your  
+  
+  expected condition for unparking was met(park返回之后，需要对返回的条件进行
+  
+  判断）.This check usually implies the ordering guarantees one needs(我们需要
+  
+  在判断逻辑里面确保我们的顺序一致性）, though the onus(义务，责任) is on the 
+  
+  programmer to ensure this.
+  
+  所以感觉park和unpark是用来协调控制流的（线程之间的协同），是通用的。但是我们
+  
+  一般通过park和unpark调用是用来实现我们所需要的功能。这个功能可能是需要状态转换
+  
+  的，而状态转换的功能就需要我们在额外的check逻辑里面来确保。
+  
+  
+  The "retries" checks are built into higher-level concurrency constructs like Semaphore,
+  
+  CountdownLatch, AbstractQueuedSynchronizer
+  
+  
+  1> park在多个条件变量上
+  2> park在一个条件变量上，有可能丢失信号
+  3> unpark可以被其他人随意调用（可能在多处park，unpark都可能调用唤醒相应的park线程)
+  
+  
+  What is important, is that if park() woke up /*in response*/ to unpark() 
+  
+  (actually observed the unpark), then the volatile reads following the park() in 
+  
+  program order *must synchronize-with* the volatile writes preceding the unpark()
+  
+
