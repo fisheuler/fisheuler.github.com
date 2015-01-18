@@ -109,4 +109,12 @@ core java
   
   program order *must synchronize-with* the volatile writes preceding the unpark()
   
+  
+  How and whether they communicate, and how that affects thread's 
+  
+  progress, is a matter separate from visibility.
 
+  synchronization order" and "synchronizes-with." edge
+  
+  
+  
