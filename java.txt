@@ -116,5 +116,25 @@ core java
 
   synchronization order" and "synchronizes-with." edge
   
+  The compiler can reorder things, or in general do semantic preserving
+  
+  transformations, but it has to know that the transformation is semantic
+  
+  preserving.
+  
+  
+  doug lea:
+  
+  It depends on how many angels fit on a pinhead.(wasting time debating topics of no practical value)
+  
+  I'm still thinking it does marginally more good than harm
+  
+  
+
+  Gregg Wonderly:
+  
+  Why have we not decided to just create a new language specification which is 100% data-flow driven
+  
+  with complete ordering 100% controlled by references and modification of data read from those references
   
   
