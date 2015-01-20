@@ -60,3 +60,15 @@ done
  git add .
  
  git commit -m " commit message "
+
+
+7. find 
+
+   -print option , print the filename ,followed by a newline 
+   causion: filename maybe contains newline character sequence, our data maybe incorrectly damaged.
+   
+   instead we can use -print0 , filename followd by a null character
+   
+   for the same reason ,we should have the -0 option for the xargs 
+   
+   
