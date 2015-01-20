@@ -109,4 +109,7 @@ done
    reference url: http://aadrake.com/command-line-tools-can-be-235x-faster-than-your-hadoop-cluster.html
    
    
-8
+8  xargs cp 
+
+  cat filenamelist | xargs -i cp {} dir
+  
