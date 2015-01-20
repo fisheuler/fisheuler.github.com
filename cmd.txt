@@ -71,4 +71,42 @@ done
    
    for the same reason ,we should have the -0 option for the xargs 
    
+
+   some record:
    
+   [Result "1/2-1/2"]
+   
+   
+   
+   first round:
+   
+   find . -type f -name '*.pgn' -print0 | xargs -0 -n1 -P4 grep -F "Result" | 
+   
+   gawk '{ split($0, a, "-"); res = substr(a[1], length(a[1]), 1); 
+           if (res == 1) white++; if (res == 0) black++; if (res == 2) draw++;}
+         END { print NR, white, black, draw }'
+         
+         
+  
+   second round:
+   
+   find . -type f -name '*.pgn' -print0 | xargs -0 -n1 -P4 
+   
+   awk '/Result/ { split($0, a, "-"); res = substr(a[1], length(a[1]), 1); 
+   
+   if (res == 1) white++; if (res == 0) black++; if (res == 2) draw++;} 
+   
+   END { print white+black+draw, white, black, draw }'
+   
+   
+   third round:
+   
+   time find . -type f -name '*.pgn' -print0 | xargs -0 -n4 -P4 
+   awk '/Result/ { split($0, a, "-"); res = substr(a[1], length(a[1]), 1); 
+   if (res == 1) white++; if (res == 0) black++; if (res == 2) draw++ } 
+   END { print white+black+draw, white, black, draw }' | awk '{games += $1; white += $2; black += $3; draw += $4; } END { print games, white, black, draw }'
+   
+   reference url: http://aadrake.com/command-line-tools-can-be-235x-faster-than-your-hadoop-cluster.html
+   
+   
+8
