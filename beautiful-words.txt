@@ -45,3 +45,13 @@ clang/LLVM also provide a very friendly set of libraries to make it
 easy for people to go in, walk the AST, pattern match on it, refactor
 it, etc. -- the tools are being used extensively in industry for
 refactoring support
+
+
+JoeBuck 
+
+The GPL was RMS's greatest hack , but copyleft is just one tool. It 
+can promote software sharing, but it can't bend the world to RMS's will.
+
+Leave the politics behind. "We reject kings, presidents and voting. We
+believe in rough consensus and running code".
+
