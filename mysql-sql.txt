@@ -39,4 +39,18 @@ insert into tableName(talbeColumn)
 on duplicate key update columnKeyOne=values(columKeyOne),columnKeyTwo=values(columnKeyTwo)....
 
 
+3. get general table info from databases sql
+
+SELECT CONCAT(table_schema, '.', table_name),
+       ENGINE,
+       CONCAT(ROUND(table_rows / 1000000, 2), 'M')                                    rows,
+       CONCAT(ROUND(data_length / ( 1024 * 1024 * 1024 ), 2), 'G')                    DATA,
+       CONCAT(ROUND(index_length / ( 1024 * 1024 * 1024 ), 2), 'G')                   idx,
+       CONCAT(ROUND(( data_length + index_length ) / ( 1024 * 1024 * 1024 ), 2), 'G') total_size,
+       ROUND(index_length / data_length, 2)                                           idxfrac
+FROM   information_schema.TABLES
+ORDER  BY data_length + index_length DESC
+
+
+reference : finding-out-largest-tables-on-mysql-server
 
