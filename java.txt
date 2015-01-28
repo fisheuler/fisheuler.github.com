@@ -138,3 +138,12 @@ core java
   with complete ordering 100% controlled by references and modification of data read from those references
   
   
+  3
+   
+   java中，string中的”符号被转换成json时候，会加一个转义符号\（backslash)，
+   
+   用正则匹配将backslash替换掉的时候，匹配\的写法需要写四个\
+   
+   json.replaceAll("\\\\","somestring")
+   
+   
