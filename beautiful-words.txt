@@ -55,3 +55,14 @@ can promote software sharing, but it can't bend the world to RMS's will.
 Leave the politics behind. "We reject kings, presidents and voting. We
 believe in rough consensus and running code".
 
+
+
+
+2  Re: Is binutils neccessary?
+
+http://article.gmane.org/gmane.linux.toybox/1890
+
+Understanding the bin, sbin, usr/bin , usr/sbin split
+
+
+The Daemon, the GNU and the Penguin - Ch. 10 - By Dr. Peter H. Salus
