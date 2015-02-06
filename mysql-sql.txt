@@ -54,3 +54,8 @@ ORDER  BY data_length + index_length DESC
 
 reference : finding-out-largest-tables-on-mysql-server
 
+
+4. dump出某数据库中的数据和建表语句
+
+mysqldump -h hostname -u user -pPassword -P port -d databasename  ( -d option ignore the data)
+
