@@ -1,0 +1,74 @@
+
+
+
+rs.initiate()
+
+rs.status()
+
+rs.add()
+
+use location   // create database
+
+db.system.indexes.find()	
+
+db.neighorUserInfo.ensureIndex({location:"2d"})
+
+db.neighorUserInfo.find({location:{$geoWithin:{$center:[[50,40],10]}}})
+
+
+
+
+
+mongo -port portNumber
+
+use location
+
+db.neighorUserInfo.ensureIndex({location:"2d"})
+
+
+
+mongodump:
+
+mongodump --port 10001 --db location --collection neighorUserInfo
+
+
+mongorestore:
+
+mongorestore --port 20002 dump/
+
+
+
+remove:
+
+db.neighorUserInfo.remove({"userId":"10086"})
+
+
+
+index:
+
+use location 
+
+db.neighorUserInfo.ensureIndex({location:"2d"})
+
+db.neighorUserInfo.ensureIndex({userId:1},{unique:true})
+
+
+
+db.neighorUserInfo.dropIndex()
+
+db.neighorUserInfo.getIndexes()
+
+db.neighorUserInfo.find()
+
+db.neighorUserInfo.remove()
+
+db.neighorUserInfo.remove({})
+
+
+mongo --host 172.16.4.231 --port 30001
+
+
+
+ db.mcp_content.find({"content_type" : "11","is_online" : "1"},{"id":1,"name":1,"_id":0}).sort({"logdate":-1}).limit(100).skip(0);
+
+ 
