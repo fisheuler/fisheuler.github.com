@@ -113,3 +113,51 @@ done
 
   cat filenamelist | xargs -i cp {} dir
   
+  
+9 tr
+
+tr [:lower:] [:upper:]
+
+echo "my username is 432234" | tr -cd [:digit:]
+
+tr -cd [:print:] < file.txt
+
+
+for f in *; do
+      mv $f `echo $f | tr A-Z a-z`
+   done
+
+
+
+tr a-zA-Z n-za-mN-ZA-M
+
+
+10 jmap
+
+jmap -histo 12934
+
+jmap -dump:live,format=b,file=heap.bin 12934
+
+jhat
+
+
+/tshark -i eth1 -nn -c 10000 -d "tcp.port==3393,mysql" -R 'mysql matches "SELECT|INSERT|DELETE|UPDATE"' -T fields -e "ip.src" -e "mysql.query" 
+
+
+
+http://blog.csdn.net/chen77716/article/details/6291900
+
+
+jmap -histo `pidof java` | sed -n -e '1,3p' -e '/SocketWrapper/p' -e '/SocketProcessor/p'
+
+
+
+
+n=0; 
+while (( n < 10 ));do  
+    n=$((n+1)); 
+    echo -ne "GET /main HTTP/1.1\nhost: localhost:7001\n\n";
+    sleep 1;
+done | telnet localhost 7001
+
+http://docs.oracle.com/javase/7/docs/webnotes/tsg/TSG-VM/html/docinfo.html
