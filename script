@@ -1,0 +1,44 @@
+if [ $# -ne 1 ];
+        then echo " please input env"
+fi
+
+
+dev()
+{
+        echo -n "dev pacakge"
+        mvn clean compile package install -Dmaven.test.skip=true -U -P dev 
+        retval=$?
+        return $retval
+}
+
+test()
+{
+        echo -n " test package"
+        mvn clean compile package install -Dmaven.test.skip=true -U -P test
+        retval=$?
+        return $retval
+}
+
+online()
+{
+        echo -n " test package"
+        mvn clean compile package install -Dmaven.test.skip=true -U -P online 
+        retval=$?
+        return $retval
+}
+
+
+case "$1" in
+        dev)
+                $1
+        ;;
+        test)
+                $1
+        ;;
+        online)
+                $1
+        ;;
+        *)
+        echo $"Usage: $0 {dev|test|online}"
+        exit 2
+esac
