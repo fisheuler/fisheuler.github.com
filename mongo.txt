@@ -1,4 +1,5 @@
 
+mongo常见操作
 
 
 rs.initiate()
