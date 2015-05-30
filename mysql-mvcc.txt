@@ -12,7 +12,7 @@ binlog。此日志用于记录mysql数据的变更的。主要用途在于
 
 transaction log:
 
-innodb中的redo log 和undo log
+innodb中的redo log 和undo log, 见参考链接4,5
 
 redo log：主要用于记录transaction的日志，用于实现acid中的duriably特性
 
@@ -74,4 +74,8 @@ https://blogs.oracle.com/mysqlinnodb/entry/repeatable_read_isolation_level_in
 3. The basics of the InnoDB undo logging and history system
 http://blog.jcole.us/2014/04/16/the-basics-of-the-innodb-undo-logging-and-history-system/
 
+4. InnoDB redo log漫游
+http://mysql.taobao.org/monthly/2015/05/01/
 
+5. InnoDB undo log 漫游
+http://mysql.taobao.org/monthly/2015/04/01/
