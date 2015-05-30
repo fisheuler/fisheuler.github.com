@@ -1,0 +1,77 @@
+
+
+介绍几个概念。
+
+
+binlog。此日志用于记录mysql数据的变更的。主要用途在于
+
+1. replication ，用于备份和复制数据。
+2. recovery operation  数据恢复时需要binlog
+
+
+
+transaction log:
+
+innodb中的redo log 和undo log
+
+redo log：主要用于记录transaction的日志，用于实现acid中的duriably特性
+
+undo log：主要用于rollback以及事务隔离isolation的实现。
+
+
+group commit 介绍
+
+对于innodb等事务引擎来说，为了保证事务的duriably特性，如果设置innodb_flush_log_at_trx_commit =1 
+
+则对于每次事务操作，都会调用fsync将系统缓存中的数据(linux中的page cache)刷新到磁盘。但是由于普通磁盘
+
+中数据操作受限于物理磁头的寻道操作，速度很慢。如果每次事务都需要flush一下缓存的话，或导致整个系统的
+
+tps很低。group commit正是为了提高系统的tps，通过优化flush策略来提高tps。基本做法就是，将一批事务通过
+
+一次fsync操作来刷盘。 就是batch 批处理的思想。将多次fsync操作合并为一次fsync操作，来提高刷盘效率。
+
+
+mysql 5.0之后实现了xa分布式事务之后，innodb引擎的group commit特性就不能用了. 原有代码通过prepare_mutex_lock
+
+来维持binlog和innodb的 redo log的顺序一致。而此lock导致group commit特性失效了。
+
+之后Kristian Nielsen通过提patch来解决了此问题。 主要是将原来批量操作提前到binlog层来做。通过两个order接口来
+
+确保binlog和innodb日志的顺序一致。相关设计文档见参考链接1.
+
+
+
+mvcc 实现：
+
+mysql中为了提高在高并发时候的处理能力，通过mvcc来替换锁策略，提高系统的并行度。
+
+mvcc相当于一个乐观锁的概念，通过数据的多版本来实现事务的并行，以及事务isolation的四种级别。
+
+
+简单的说就是现有的每行数据都有多余的几个字段：
+
+DB_TRX_ID ，相当于该数据现在的transaction版本号
+
+DB_ROLL_PTR，指向undo日志的指针，用来回溯数据至某一历史记录。
+
+对于简单的repeated read事物隔离级别来说，其大致的实现方法即是：
+
+当一个事务开始之后，会给该事物赋予一个transaction id，对于此transaction id之前的数据，该事物都可以看见。
+
+对于其后的数据，则不可见。通过该事物的id和各行数据的现有保存的id之间的关系，就可以实现isolation中的各种
+
+事物隔离级别。详细的说明见参考文档2,3.
+
+
+
+1. Efficient group commit for binary log
+http://worklog.askmonty.org/worklog/Server-Sprint/?tid=116
+
+2. Repeatable Read Isolation Level in InnoDB - How Consistent Read View Works
+https://blogs.oracle.com/mysqlinnodb/entry/repeatable_read_isolation_level_in
+
+3. The basics of the InnoDB undo logging and history system
+http://blog.jcole.us/2014/04/16/the-basics-of-the-innodb-undo-logging-and-history-system/
+
+
