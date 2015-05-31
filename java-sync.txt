@@ -108,7 +108,8 @@ https://lwn.net/Articles/531254/
 5. MCS locks and qspinlocks
 https://lwn.net/Articles/590243/
 
-
+5. The java.util.concurrent Synchronizer Framework
+http://gee.cs.oswego.edu/dl/papers/aqs.pdf
 
 
 
