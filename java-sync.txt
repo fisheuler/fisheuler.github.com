@@ -1,0 +1,118 @@
+
+java中的锁机制有两种，一种是提供的synchronized关键字，一种是提供的lock类来实现
+
+这里主要介绍一下lock类型实现的大致原理和方法。
+
+
+1. java中的AbstractQueuedSynchronizer工具类，为java中的同步原语（信号量，事件）实现提供了一个
+
+先入先出的等待队列框架。可以在此框架基础上实现一些基本的同步原语。
+
+结合LockSupport中的 park 与 unpark 方法 来实现线程的阻塞和唤醒。
+
+
+1.1
+
+首先看一下基本的park与unpark类的实现：
+
+LockSupport中知识简单的wrappter模式，引用的是 Unsafe类中的 unpark与 park方法。
+
+Unsafe中的unpark 与 park方法前有navite标识该方法是native方法，具体实现需要到jdk中的代码。
+
+主要涉及到如下的几个c++类和方法：
+
+对应的park和unpark方法在文件：
+
+/src/share/vm/prims/unsafe.cpp
+
+两个方法签名如下：
+
+UNSAFE_ENTRY(void, Unsafe_Park(JNIEnv *env, jobject unsafe, jboolean isAbsolute, jlong time))
+
+UNSAFE_ENTRY(void, Unsafe_Unpark(JNIEnv *env, jobject unsafe, jobject jthread))
+
+
+两个方法会引用下面的Parker类。
+
+/src/share/vm/runtime/pack.hpp
+/src/share/vm/runtime/pack.cpp
+
+此Parker类继承了 os::PlatformParker类，封装了park与unpark方法，以及相应的allocate和Release方法
+
+来实现 Parker类的动态管理。Parker类是以链表的形式来组织的。
+
+PlatFormParker类在linux平台下的定义和实现在如下文件
+
+/src/os/linux/vm/os_linux.hpp
+/src/os/linux/vm/os_linux.cpp
+
+主要是通过pthread_mutex_t和pthread_cond_t来维护状态
+
+
+windows平台下的定义和实现如下：
+
+/src/os/windows/vm/os_windows.cpp
+/src/os/windows/vm/os_windows.hcp
+
+
+
+1.2 
+
+以 ReentrantLock为例，其中定义了两个类FairSync 和 NonfairSync(继承自AbstractQueuedSynchronizer类）
+
+分别为公平和非公平同步类。FairSync和 NonfairSync区别就是是否遵循fifo原则，是否是先到先得的原则了。
+
+
+AbstractQueuedSynchronizer中需要维护和实现一个 lock wait queue，用来管理和维护那些竞争lock资源的
+
+线程。其lock queue实现是CLH lock queue的一个变种。
+
+锁实现的大致思路是，将所有获取锁的阻塞线程链接成一个list，然后将锁的使用权按照list顺序交给后续线程
+
+来使用。至于锁如何传递，可以有多种方式。
+
+
+node 1                 node2 
+-----         ---->   --------
+
+
+一种即是 node2一直询问node1状态，主要向node1询问是否可以获取锁了，node1在释放锁时候只需改变自己内部的
+
+锁的status即可。(CLH自旋锁概念即是如此）
+
+一种即是 node1在释放锁的时候，直接修改node2的锁的状态，然后node2只是询问自己维护的状态是否可以获取锁了，
+
+(MCS spinlock概念即是如此)
+
+
+如果稍微抽象一下的话，这两种锁区别就是锁状态的传递方式不一样，方式虽然不一样，但是最终的目的是一样的，都
+
+是要将锁从一个thread手上传递到另一个thread手上。
+
+linux中的spinlock现在就是基于ticket lock来实现的，但是由于在竟态下的性能不好，有人提出基于MCS的概念来提高
+
+spinlock在竟态下的性能。可以参考附录链接
+
+
+1. https://github.com/openjdk-mirror/jdk7u-hotspot/blob/master/src/share/vm/runtime/os.hpp
+
+2. 自旋锁、排队自旋锁、MCS锁、CLH锁
+http://coderbee.net/index.php/concurrent/20131115/577
+
+3. Ticket spinlocks
+http://lwn.net/Articles/267968/
+
+4. Improving ticket spinlocks
+https://lwn.net/Articles/531254/
+
+5. MCS locks and qspinlocks
+https://lwn.net/Articles/590243/
+
+
+
+
+
+
+
+
+
