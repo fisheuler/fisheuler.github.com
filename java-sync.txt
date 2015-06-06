@@ -89,9 +89,9 @@ node 1                 node2
 
 是要将锁从一个thread手上传递到另一个thread手上。
 
-linux中的spinlock现在就是基于ticket lock来实现的，但是由于在竟态下的性能不好，有人提出基于MCS的概念来提高
+linux中的spinlock现在就是基于ticket lock来实现的，但是由于在竞态下的性能不好，有人提出基于MCS的概念来提高
 
-spinlock在竟态下的性能。可以参考附录链接
+spinlock在竟态下的性能。可以参考附录链接。
 
 
 1. https://github.com/openjdk-mirror/jdk7u-hotspot/blob/master/src/share/vm/runtime/os.hpp
