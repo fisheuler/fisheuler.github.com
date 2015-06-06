@@ -1,0 +1,44 @@
+
+1.动态打包功能 
+
+为了便于地推人员推广app和统计地推的推广业绩，我们采取动态打包的方式，
+
+将邀请码信息打入app中，当用户注册时候上传邀请码信息，后台通过邀请码
+
+来记录用户是由哪个地推推广而来。
+
+
+主要是在app中将邀请码信息打入其中。参考美团的文章来实现。但是其中有一个
+
+缺点，就是通过zip库来解压文件，并将新加的文件写入zip文件后，相应的音频
+
+文件相比原来的音频文件会发生压缩比的变化，导致压缩后的音频文件系统识别
+
+不了。最好可以通过系统文件block层的写来避免zip解压和冲压缩的过程。
+
+
+大概就是如下的实现过程：
+
+参数一个是apk文件存储路径，一个是要存入的channel信息。
+
+
+	public static void appendChannel(String inputFile, String channel) {
+
+		try {
+			Path zipfile = Paths.get(inputFile);
+			FileSystem fs = FileSystems.newFileSystem(zipfile, null);
+
+			Path nf = fs.getPath("META-INF/channel" + channel);
+			Writer writer = Files.newBufferedWriter(nf, StandardCharsets.UTF_8,
+					StandardOpenOption.CREATE);
+			writer.close();
+			fs.close();
+
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+
+1 美团Android自动化之旅—生成渠道包
+http://tech.meituan.com/mt-apk-packaging.html
