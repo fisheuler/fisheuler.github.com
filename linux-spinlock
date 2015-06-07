@@ -1,0 +1,106 @@
+
+
+1 spinlock 简介
+
+spinlock 即是获取锁失败时候，不是简单的将线程挂起，将控制流交给scheduler来
+
+调度，而是线程通过loop循环来获取锁。它适应的场景是那些短小，可以快速完成的
+
+任务 (spin lock userd for short period task)。一个典型的场景就是中断处理。
+
+一方面，中断处理是需要能尽快完成的；另一方面，由于中断例程不是依附在某个可以
+
+调度的实体上的（thread)，所以中断例程不能sleep（sleep之后，没有人唤醒它)，所以
+
+在此处不能用常见的lock或者mutux将中断例程阻塞，而spinlock正好适用于此场景。
+
+
+在linux 系统中原来的spinlock，原来设计就是通过一个简单的integer变量来实现。获取和释放
+
+锁通过增加和减少interger的值来完成。这样设计的spinlock锁的一个缺陷是没法提供fairness
+
+特性。有starvation的情况存在。在numa系统中，有必要把锁设计成具有一定fairness特性。(fairness of  lock acquisition)
+
+之后linux又有了一个ticket spinlock的实现，可以提供fifo的
+
+特性。它的思想类似于银行或者医院中的挂号排队系统，每个排队者先领取一个号码，然后按照号码
+
+的次序来获取服务。ticket spinlock实现中，每个线程要spin的时候，先获取一个自己的sequence number，
+
+然后通过cas循环操作来查看现在的spinlock的服务sequence是否和自己的吻合，如果吻合则获取锁，不吻合则
+
+继续loop。当释放锁时候，释放的实体更新spinlock的服务号，这样就能将锁传递给下一个竞争者。
+
+基本思路就是将并发的锁获取操作转换为串行(serialize)的操作，和lamport提出的bakery algorithm的思路是
+
+一致的。
+
+
+2. 伪码
+
+系统通过维护两个变量，
+
+queue ticket
+
+dequeue ticket
+
+
+获取锁操作：
+
+thread 原子性（atomically）的获取一个queue ticket
+
+然后和dequeue ticket进行比较，如果相等，则获取lock，
+
+否则，spin 直至获取锁。
+
+释放锁操作：
+
+当释放锁时，将dequeue ticket加一。
+
+
+
+record locktype {
+    int ticketnumber
+    int turn
+ }
+ procedure LockInit( locktype* lock ) {
+    lock.ticketnumber := 0
+    lock.turn := 0
+ }
+ procedure Lock( locktype* lock ) {
+    int myturn := FetchAndIncrement( &lock.ticketnumber )
+    while lock.turn ≠ myturn 
+        skip // spin until lock is acquired
+ }
+ procedure UnLock( locktype* lock ) {
+    FetchAndIncrement( &lock.turn )
+ }
+ 
+ 
+ 
+ 
+ 参考文档：
+ 
+1. x86: FIFO ticket spinlocks
+http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=314cdbefd1fd0a7acf3780e9628465b77ea6a836
+
+2. x86: big ticket locks
+http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=3a556b26a2718e48aa2b6ce06ea4875ddcd0778e
+
+3. Ticket spinlocks
+http://lwn.net/Articles/267968/
+
+4.Improving ticket spinlocks
+https://lwn.net/Articles/531254/
+
+5.MCS locks and qspinlocks
+https://lwn.net/Articles/590243/
+
+6. 
+http://en.wikipedia.org/wiki/Spinlock
+http://en.wikipedia.org/wiki/Ticket_lock
+https://www.cs.rochester.edu/research/synchronization/pseudocode/ss.html
+https://www.ibm.com/developerworks/cn/linux/l-cn-spinlock/
+
+8.qspinlock: a 4-byte queue spinlock with PV support
+http://thread.gmane.org/gmane.linux.kernel.cross-arch/27029
