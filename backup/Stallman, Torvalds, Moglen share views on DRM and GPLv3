@@ -1,0 +1,176 @@
+Backup from https://www.mail-archive.com/blinuxforum@lists.freearchive.org/msg00592.html
+
+Stallman, Torvalds, Moglen share views on DRM and GPLv3
+
+   With the recent release of the [1]second draft of the GNU General
+   Public License version 3 (GPLv3), digital rights management (DRM) is
+   back in the news. The new draft may raise concerns about the rewording
+   of section 3 of the license, which deals with DRM. The [2]Free
+   Software Foundation dislikes the term "[3]digital rights management"
+   and instead choose to call it digital "restrictions" management. But
+   many people don't understand the implications of DRM on free software
+   like Linux.
+
+   To understand why FSF thinks of DRM as restricting users' freedom, one
+   needs to understand the meaning of [4]copyleft and the essence of the
+   GPL. This license upheld the four provisions of copyleft:
+   (a) the freedom to use the software,
+   (b) the freedom to copy and share the software,
+   (c) the freedom to modify the software (this requires the source code
+   to be available), and
+   (d) the freedom to run and distribute modified software.
+
+   The use of DRM to disallow freedoms (c) and (d) is what FSF doesn't
+   like. Richard Stallman (RMS), founder of the FSF, calls this situation
+   [5]Tivoization. The term originates from [6]TiVo, a digital video
+   recording device that allows users to record television programs to an
+   internal hard disk for later viewing. Tivo runs on Linux-based
+   software, which means that it is governed by the GPL. That is, the
+   source code is available, the users have the right to modify the
+   source code, and they have the right to run the modified source code.
+
+   But with TiVo this doesn't happen.
+
+   While one can modify the source code of TiVo's Linux-based software,
+   one can't run it. The product's DRM enforcement prevents users from
+   running modified versions of the code on their systems. This conflicts
+   with the freedoms and provisions of the GPL. The DRM in this regard
+   acts as a restriction; users are restricted from exercising the right
+   to run the modified source code.
+
+   Signing keys
+
+   The makers of TiVo include a digital key into the software, somewhat
+   similar to the md5sum value that people can check after they download
+   software. Users can compare the md5sum of the download against the
+   md5sum value listed on the site from which the software came in order
+   to make sure they are getting the complete, genuine thing.
+
+   In the case of TiVo, the digital key makes sure that the software was
+   written by the makers of TiVo. If you change the source code and
+   recompile it, the digital keys will no longer match, and when the
+   system sees that, it will prevent you from running the modified
+   software.
+
+   Tivoization doesn't apply just to TiVo, but to all instances of DRM
+   usage that restrict the freedoms offered to the users by GPL.
+
+   GPLv3 explicitly asks software makers to provide whatever digital keys
+   they use such that people who wish to run modified versions of the
+   software can do so by using this key on their modified version. At the
+   [7]3rd international conference on GPLv3, held in Barcelona in June,
+   RMS said, "They can design the hardware so that it requires the
+   binaries to be signed by a certain signature key in order to run, but
+   they must give you the signature key so that you can sign your
+   modified binaries. They must give you whatever it takes to authorize
+   your version so that it will run."
+
+   But Linus Torvalds, the creator of Linux, has a problem with this. He
+   says that he himself signs the Linux kernel, and that that's his way
+   of telling everyone, "You can trust this, it's from me." In an
+   [8]email message to the Linux Kernel Mailing List (LKML) on 23 April,
+   he says that there are two types of keys: "One is an external key that
+   is applied _to_ the kernel (OK, and outside the license), and the
+   other one is embedding a key _into_ the kernel."
+
+   GPLv3 says that if any GPLed software carries an embedded key, this
+   key should me made available to the users, but it makes no demands on
+   the first kind of key. Linus has said that he would never distribute
+   his signing keys, but the GPLv3 does not require him to release them.
+   The key he talks about only describe the trustworthiness of the
+   kernel. It in no way affects the freedoms of copyleft. It's only the
+   embedded keys, which can be used to nullify the freedoms offered by
+   copyleft, that need to be released.
+
+   Linus has repeatedly claimed that it is not for a license to decide
+   how a manufacturer uses digital keys. He says the key are firmware,
+   and therefore a software license has no scope or reason for
+   controlling this.
+
+   Eben Moglen addressed that concern during the conference in Barcelona.
+   Moglen, general counsel of the Free Software Foundation and chairman
+   of Software Freedom Law Center, said, "You will hear a lot of talk
+   about DRM in which it is suggested that we are somehow trying to use a
+   software licence to address non-software issues. Nothing could be
+   further from the truth; we are addressing a software issue.... And by
+   the way, what you are not allowed to do by illegally modifying the
+   licence, you are not allowed to do by modifying the hardware so that
+   the licence can be evaded safely. It's a straightforward proposition:
+   you can't do it this way and you can't do it that way either."
+
+   GPLv3 not alone
+
+   Contrary to common belief, GPLv3 is not the first license to denounce
+   DRM. [9]Against DRM 2.0 is a free copyleft license for art works; it
+   cannot be used for software. Section 6 of this license states:
+
+   This license is incompatible with any technology, device or component
+   that, in the normal course of its operation, is designed to prevent or
+   restrict acts which are authorised or not authorised by licensor: this
+   incompatibility causes the inapplicability of the license to the work.
+
+   In particular:
+   a. it is not possible to release validly under this license works or
+   derivative works whose access control mechanism and/or copy control
+   mechanism prevents or restricts quantitatively and/or qualitatively
+   access to, fruition, copy, modification and/or sharing of them;
+   b. in conformity with this license, it is not allowed to prevent or
+   restrict quantitatively and/or qualitatively access to, fruition,
+   copy, modification, and/or sharing of works or derivative works
+   through an access control mechanism and/or a copy control mechanism;
+   c. in conformity with this license, it is not allowed to prevent or
+   restrict the exercise of a granted right through any digital, analog
+   or physical method.
+
+   Even the [10]Creative Common Attribution-ShareAlike license includes
+   an anti-DRM clause. Section 4.a states:
+
+   You may not distribute, publicly display, publicly perform, or
+   publicly digitally perform the Work with any technological measures
+   that control access or use of the Work in a manner inconsistent with
+   the terms of this License Agreement.
+
+   "Technological measures" refer to DRM. The second draft of GPLv3 has
+   similar wording. Section 3 is titled "No Denying Users' Rights through
+   Technical Measures."
+
+   Conclusion
+
+   The FSF and Stallman have explained many times that they believe there
+   is nothing wrong with DRM itself; they only wish to protect the
+   freedoms and provisions offered by the GPL. As long as the use of DRM
+   does not hinder the four freedoms of copyleft, it's fine. GPLv3 takes
+   steps to clarifying that.
+
+   Moglen recently said, "If you're keeping the right to modify and not
+   conveying that right to modify, you're violating the licence." The FSF
+   says, "GPLv3 does not prohibit the implementation of DRM features, but
+   prevents them from being imposed on users in a way that they cannot
+   remove." Moglen further added that it'd be fine for manufacturers to
+   nullify warranty and not provide support if modified software is used.
+
+   The [11]4th international conference, to be held in Bangalore, India
+   on 23-24 August will have extensive discussions on DRM.
+
+   [12]Shashank Sharma is studying for a degree in computer science. He
+   specializes in writing about free and open source software for new
+   users.
+
+   Links
+     _________________________________________________________________
+
+    1. "second draft" - http://gplv3.fsf.org/gpl-draft-2006-07-27.html
+    2. "Free Software Foundation" - http://www.fsf.org/
+    3. "digital rights management" -
+       http://en.wikipedia.org/wiki/Digital_Rights_Management
+    4. "copyleft" - http://en.wikipedia.org/wiki/Copyleft
+    5. "Tivoization" - http://en.wikipedia.org/wiki/Tivoization
+    6. "TiVo" - http://www.tivo.com/1.0.asp
+    7. "3rd international conference" -
+       http://fsfeurope.org/projects/gplv3/europe-gplv3-conference
+    8. "email message" - http://lwn.net/Articles/30048/
+    9. "Against DRM 2.0" - http://www.freecreations.org/Against_DRM2.html
+   10. "Creative Common Attribution-ShareAlike" -
+       http://creativecommons.org/licenses/by-sa/2.5/legalcode
+   11. "4th international conference" - http://gplv3.gnu.org.in/
+   12. "Shashank Sharma" - http://www.linuxlala.net/
