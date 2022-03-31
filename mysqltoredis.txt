@@ -44,7 +44,7 @@ from mcp_game_package_rel
 之后通过linux中的管道来实现批量导入数据至redis数据库：
 命令行参数
  
-mysql -h 10.10.1.106 --port=3307 -uwork -pduoku2012 -DMCP --skip-column-names --raw < mobileassistant_mysql_to_reds.sql | redis-cli -h 127.0.0.1 -p 6379 --pipe	 
+mysql -h 10.10.1.106 --port=3307 -uxxx -pxxx -DMCP --skip-column-names --raw < mobileassistant_mysql_to_reds.sql | redis-cli -h 127.0.0.1 -p 6379 --pipe	 
  
  
 上面语句完成从10.10.1.106：:307的MCP库中导入数据至本地redis实例中。
@@ -53,7 +53,7 @@ mysql -h 10.10.1.106 --port=3307 -uwork -pduoku2012 -DMCP --skip-column-names --
 通过time可以查看到导入30w条数据大概耗费了2.5秒的时间
  
  
-time mysql -h 10.10.1.106 --port=3307 -uwork -pduoku2012 -DMCP --skip-column-names --raw < mobileassistant_mysql_to_reds.sql | redis-cli -h 127.0.0.1 -p 6379 --pipe	
+time mysql -h 10.10.1.106 --port=3307 -uxxx -pxxx -DMCP --skip-column-names --raw < mobileassistant_mysql_to_reds.sql | redis-cli -h 127.0.0.1 -p 6379 --pipe	
  
  
 All data transferred. Waiting for the last reply...
@@ -95,7 +95,7 @@ from mcp_game_blacklist
 之后通过linux中的管道来实现批量导入数据至redis数据库：
 命令行参数
  
-mysql -h 10.10.1.120 --port=4051 -uroot -pduoku2012 -DMCP --skip-column-names --raw < mobileassistant_mysql_to_reds_blacklist.sql  | redis-cli -h 10.10.1.101 -p 6386 --pipe	 
+mysql -h 10.10.1.120 --port=4051 -uxxx -pxxx -DMCP --skip-column-names --raw < mobileassistant_mysql_to_reds_blacklist.sql  | redis-cli -h 10.10.1.101 -p 6386 --pipe	 
 此脚本通过链接线上的黑名单数据批量删除redis中的数据。
  
 3. 批量删除脚本。线下百度数据库也需要过滤一下
@@ -119,5 +119,5 @@ from BaiduAndroidInfo where enable=0
 之后通过linux中的管道来实现批量导入数据至redis数据库：
 命令行参数
  
- mysql -h 10.10.0.141 --port=3306 -uwork -pduoku2012 -Dstatusxkdb --skip-column-names --raw < mobileassistant_mysql_to_reds_baidu_blacklist.sql  | redis-cli -h 10.10.1.101 -p 6386 --pipe	 
+ mysql -h 10.10.0.141 --port=3306 -uxxx -pxxx -Dstatusxkdb --skip-column-names --raw < mobileassistant_mysql_to_reds_baidu_blacklist.sql  | redis-cli -h 10.10.1.101 -p 6386 --pipe	 
 此脚本通过链接线上的黑名单数据批量删除redis中的数据。
